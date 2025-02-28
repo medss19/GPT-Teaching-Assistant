@@ -738,3 +738,62 @@ body {
     font-size: 1.1rem;
   }
 }
+
+/* Add or modify these CSS rules in your Chat.css file */
+
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden; /* Prevent scrolling on the container */
+}
+
+.chat-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden; /* Prevent scrolling on wrapper */
+}
+
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden; /* Prevent scrolling on container */
+}
+
+.chat-header {
+  flex-shrink: 0; /* Prevent header from shrinking */
+}
+
+/* Remove the .messages-container div from your JSX as it's an unnecessary wrapper */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto; /* Enable scrolling only in the messages area */
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  min-height: 0; /* Critical for flexbox scrolling to work properly */
+}
+
+.chat-input-container {
+  flex-shrink: 0; /* Prevent input from shrinking */
+  width: 100%;
+  background-color: var(--background-color, #fff);
+  padding: 10px;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+  z-index: 10; /* Ensure input stays above content */
+}
+
+/* Ensure textarea doesn't grow indefinitely */
+.doubt-input {
+  max-height: 150px; /* Limit how tall the input can grow */
+  overflow-y: auto; /* Allow scrolling within the textarea if it reaches max height */
+}
+
+/* For dark mode compatibility */
+[data-theme="dark"] .chat-input-container {
+  background-color: var(--dark-background-color, #222);
+  border-color: var(--dark-border-color, #444);
+}

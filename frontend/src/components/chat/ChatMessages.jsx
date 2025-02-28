@@ -1,16 +1,14 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import MessageItem from "./MessageItem";
 import WelcomeMessage from "./WelcomeMessage";
 
-const ChatMessages = ({ messages, isLoading }) => {
-  const messagesEndRef = useRef(null);
-
+const ChatMessages = ({ messages, isLoading, messagesEndRef }) => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, messagesEndRef]);
 
   return (
-    <div className="chat-messages" style={{ overflowY: "auto", maxHeight: "560px" }}>
+    <div className="chat-messages">
       {messages.length === 0 ? (
         <WelcomeMessage />
       ) : (

@@ -33,10 +33,8 @@ const Chat = () => {
     bookmarks
   } = useChat();
 
-  // Auto-scroll to the bottom of the chat
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, messagesEndRef]);
+  // Auto-scroll effect is now moved to ChatMessages component
+  // We no longer need this useEffect here
 
   return (
     <div className="app-container">
@@ -64,13 +62,11 @@ const Chat = () => {
             errorDetails={errorDetails} 
           />
 
-          <div className="messages-container">
-            <ChatMessages 
-              messages={messages} 
-              isLoading={isLoading} 
-              messagesEndRef={messagesEndRef} 
-            />
-          </div>
+          <ChatMessages 
+            messages={messages} 
+            isLoading={isLoading} 
+            messagesEndRef={messagesEndRef} 
+          />
 
           <ChatInput
             url={url}
