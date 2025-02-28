@@ -38,6 +38,7 @@ const Sidebar = ({
         )}
 
         {/* Recent conversations section */}
+        <br></br>
         <h3>Recent</h3>
         <ConversationList
           conversations={conversations}

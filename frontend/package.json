@@ -12,6 +12,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.22.0",
     "axios": "^1.8.1",
+    "lucide-react": "^0.476.0",
     "puppeteer": "^24.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

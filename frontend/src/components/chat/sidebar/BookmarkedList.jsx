@@ -21,9 +21,7 @@ const BookmarkedList = ({
             className={`history-item ${item.id === currentConversationId ? 'active' : ''}`}
             onClick={() => switchConversation(item.id)}
           >
-            <span className="history-title">
-              {item.title || "Untitled"}
-            </span>
+            <span className="history-title">{item.title || "Untitled"}</span>
             <span className="history-date">{getFormattedDate(item.timestamp)}</span>
             <div className="history-actions">
               <button

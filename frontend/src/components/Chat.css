@@ -91,13 +91,13 @@ body {
   padding: 20px 16px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
 }
 
 .sidebar-header h2 {
   font-size: 1.1rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-color);
 }
 
@@ -183,8 +183,38 @@ body {
   margin-top: 4px;
 }
 
+.bookmark-button:hover .bookmark-icon,
+.delete-button:hover .delete-icon {
+  transform: scale(1.1);
+}
+
+/* Hover effect */
+.history-item:hover {
+  background: #daeaff;
+}
 
 .history-actions {
+  display: flex;
+}
+
+.bookmark-button,
+.delete-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.bookmark-icon,
+.delete-icon {
+  width: 18px; /* Adjust as needed */
+  height: 18px;
+  object-fit: contain;
+  display: block;
+}
+
+
+/* .history-actions {
   display: flex;
   gap: 8px;
 }
@@ -201,17 +231,7 @@ body {
   width: 20px;
   height: 20px;
   transition: transform 0.2s ease-in-out;
-}
-
-.bookmark-button:hover .bookmark-icon,
-.delete-button:hover .delete-icon {
-  transform: scale(1.1);
-}
-
-/* Hover effect */
-.history-item:hover {
-  background: #daeaff;
-}
+} */
 
 /* Chat wrapper - contains the chat interface */
 .chat-wrapper {
@@ -234,37 +254,44 @@ body {
 
 /* Chat header */
 .chat-header {
-  padding: 16px 20px;
+  padding: 12px 20px;
   background-color: var(--input-bg);
   color: var(--text-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   z-index: 10;
-  transition: background-color 0.3s, color 0.3s;
+  transition: all 0.3s ease;
+  position: sticky;
+  top: 0;
+}
+
+.header-title {
+  display: flex;
+  flex-direction: column;
 }
 
 .chat-header h1 {
   margin: 0;
-  font-size: 1.3rem;
-  font-weight: 600;
+  font-size: 1.2rem;
+  font-weight: 700;
   color: var(--primary-color);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
-.menu-button {
-  background: none;
-  border: none;
+.header-subtitle {
+  font-size: 0.75rem;
   color: var(--text-color);
-  font-size: 24px;
-  cursor: pointer;
-  padding: 4px 8px;
-  display: none;
+  opacity: 0.7;
+  font-weight: 400;
 }
 
 .header-options {
   display: flex;
-  gap: 15px;
+  gap: 12px;
   align-items: center;
 }
 
@@ -272,41 +299,64 @@ body {
   background: none;
   border: none;
   color: var(--text-color);
-  font-size: 20px;
   cursor: pointer;
-  opacity: 0.8;
-  transition: opacity 0.2s;
-  padding: 8px;
-  border-radius: 50%;
+  padding: 6px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background-color 0.2s, transform 0.2s;
 }
 
 .theme-toggle:hover {
-  opacity: 1;
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--border-color);
+  transform: rotate(15deg);
+}
+
+.error-banner {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--message-bg-system);
+  color: var(--message-text-system);
+  padding: 10px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  animation: slideDown 0.3s ease-out;
+}
+
+.error-content {
+  flex: 1;
+}
+
+.error-message {
+  margin: 0 0 4px 0;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.error-help {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.9;
 }
 
 [data-theme="dark"] .theme-toggle:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-.error-banner {
-  position: absolute;
-  top: 70px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90%;
-  max-width: 600px;
-  margin-top: 10px;
-  padding: 10px;
-  background-color: var(--message-bg-system);
-  color: var(--message-text-system);
-  border-radius: 8px;
-  font-size: 0.9rem;
-  z-index: 20;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* Chat messages area */
@@ -643,11 +693,15 @@ body {
   }
   
   .menu-button {
-    display: block;
+    display: flex;
+  }
+  
+  .header-subtitle {
+    display: none;
   }
   
   .chat-header h1 {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
   }
   
   .welcome-message {
@@ -683,24 +737,4 @@ body {
   .chat-header h1 {
     font-size: 1.1rem;
   }
-}
-
-.history-actions {
-  display: flex;
-}
-
-.bookmark-button,
-.delete-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 5px;
-}
-
-.bookmark-icon,
-.delete-icon {
-  width: 18px; /* Adjust as needed */
-  height: 18px;
-  object-fit: contain;
-  display: block;
 }
