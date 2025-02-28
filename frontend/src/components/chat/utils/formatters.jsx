@@ -46,8 +46,11 @@ export const formatMessage = (text) => {
 export const formatMarkdown = (text) => {
   if (!text) return null;
 
+  // Pre-process the text to extract tables
+  const { processedText, tables } = extractTables(text);
+
   // Process headings, paragraphs, lists, etc.
-  const lines = text.split('\n');
+  const lines = processedText.split('\n');
   const result = [];
   let currentList = null;
   let listType = null; // 'ul' for unordered, 'ol' for ordered
@@ -57,6 +60,20 @@ export const formatMarkdown = (text) => {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmedLine = line.trim();
+
+    // Check for table placeholder and insert the appropriate table
+    const tablePlaceholderMatch = trimmedLine.match(/^TABLE_PLACEHOLDER_(\d+)$/);
+    if (tablePlaceholderMatch) {
+      const tableIndex = parseInt(tablePlaceholderMatch[1]);
+      if (tables[tableIndex]) {
+        result.push({
+          type: 'table',
+          content: tables[tableIndex],
+          key: `table-${i}`
+        });
+      }
+      continue;
+    }
 
     // Process headings (# Heading)
     const headingMatch = trimmedLine.match(/^(#{1,6})\s+(.*)/);
@@ -234,9 +251,127 @@ export const formatMarkdown = (text) => {
           ))}
         </blockquote>
       );
+    } else if (item.type === 'table') {
+      return (
+        <table key={item.key} className="markdown-table">
+          {item.content.hasHeader && (
+            <thead>
+              <tr>
+                {item.content.headers.map((cell, cellIndex) => (
+                  <th key={`th-${cellIndex}`} className="markdown-th">{cell}</th>
+                ))}
+              </tr>
+            </thead>
+          )}
+          <tbody>
+            {item.content.rows.map((row, rowIndex) => (
+              <tr key={`tr-${rowIndex}`}>
+                {row.map((cell, cellIndex) => (
+                  <td key={`td-${rowIndex}-${cellIndex}`} className="markdown-td">{formatInlineMarkdown(cell)}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      );
     }
     return null;
   });
+};
+
+// Function to extract tables from text
+const extractTables = (text) => {
+  const lines = text.split('\n');
+  const tables = [];
+  let processedLines = [];
+  let tableLines = [];
+  let inTable = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Check if this is a potential table line
+    if (line.startsWith('|') && line.endsWith('|')) {
+      if (!inTable) {
+        inTable = true;
+        tableLines = [];
+      }
+      tableLines.push(line);
+    } else {
+      if (inTable) {
+        // End of table
+        if (tableLines.length >= 2) {
+          const parsedTable = parseTable(tableLines);
+          tables.push(parsedTable);
+          processedLines.push(`TABLE_PLACEHOLDER_${tables.length - 1}`);
+        } else {
+          // Not a valid table, just add the lines back
+          processedLines.push(...tableLines);
+        }
+        tableLines = [];
+        inTable = false;
+      }
+      processedLines.push(lines[i]); // Preserve original whitespace
+    }
+  }
+  
+  // Handle any table at the end of the text
+  if (inTable && tableLines.length >= 2) {
+    const parsedTable = parseTable(tableLines);
+    tables.push(parsedTable);
+    processedLines.push(`TABLE_PLACEHOLDER_${tables.length - 1}`);
+  } else if (inTable) {
+    processedLines.push(...tableLines);
+  }
+  
+  return {
+    processedText: processedLines.join('\n'),
+    tables
+  };
+};
+
+// Function to parse markdown table
+const parseTable = (tableRows) => {
+  if (!tableRows || tableRows.length < 2) return { hasHeader: false, headers: [], rows: [] };
+
+  // Process each row
+  const processedRows = tableRows.map(row => {
+    // Split by pipe character and remove empty first/last elements
+    const cells = row.split('|');
+    if (cells[0] === '') cells.shift();
+    if (cells[cells.length - 1] === '') cells.pop();
+    return cells.map(cell => cell.trim());
+  });
+
+  // Check for header delimiter row (e.g., |---|---|)
+  let hasHeader = false;
+  let headerIndex = -1;
+  
+  for (let i = 0; i < processedRows.length; i++) {
+    // Check if this row looks like a delimiter row (contains only dashes, colons and spaces)
+    const isDelimiterRow = processedRows[i].every(cell => {
+      return cell.match(/^[-:\s]+$/);
+    });
+    
+    if (isDelimiterRow && i > 0) {
+      hasHeader = true;
+      headerIndex = i - 1;
+      break;
+    }
+  }
+
+  let headers = [];
+  let rows = [];
+
+  if (hasHeader && headerIndex >= 0) {
+    headers = processedRows[headerIndex];
+    // Filter out the header and delimiter rows
+    rows = processedRows.filter((_, index) => index !== headerIndex && index !== headerIndex + 1);
+  } else {
+    rows = processedRows;
+  }
+
+  return { hasHeader, headers, rows };
 };
 
 // Process inline formatting like bold, italic, code, etc.
@@ -391,6 +526,9 @@ export const addClassNameBasedOnContent = (content) => {
   }
   if (content.match(/\*\*.*\*\*/)) {
     return 'contains-emphasis';
+  }
+  if (content.includes('|') && content.match(/\|[\s-:]*\|/)) {
+    return 'contains-table';
   }
   return '';
 };

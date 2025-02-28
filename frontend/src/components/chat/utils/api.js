@@ -6,16 +6,19 @@ import {
     createImplementationGuidancePrompt,
     createSimilarProblemsPrompt
 } from "./systemPrompts";
+import { patternLibrary } from "./teachingPatterns";
 
 let lastLeetCodeUrl = null; // Store the last used LeetCode URL
+let persistentChatSession = null; // Store the chat session
 
 /**
  * Calls the Gemini API with appropriate prompts based on the provided inputs
  * @param {string} leetcodeUrl - The LeetCode problem URL
  * @param {string} userDoubt - The user's specific question or doubt
+ * @param {boolean} isNewConversation - Whether to start a new conversation
  * @returns {Promise<string>} - The response from the Gemini API
  */
-export const callGeminiAPI = async (leetcodeUrl, userDoubt) => {
+export const callGeminiAPI = async (leetcodeUrl, userDoubt, isNewConversation = false) => {
     try {
         const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -36,19 +39,26 @@ export const callGeminiAPI = async (leetcodeUrl, userDoubt) => {
             responseMimeType: "text/plain",
         };
 
-        console.log("Starting chat session with Gemini AI");
-        const chatSession = model.startChat({ generationConfig, history: [] });
-
         // Update lastLeetCodeUrl if a new URL is provided
         if (leetcodeUrl) {
             lastLeetCodeUrl = leetcodeUrl;
         }
 
-        // Build the system prompt based on available inputs
-        const systemPrompt = buildSystemPrompt(leetcodeUrl || lastLeetCodeUrl, userDoubt);
+        // Start a new chat session if this is a new conversation or there isn't one already
+        if (isNewConversation || !persistentChatSession) {
+            console.log("Starting new chat session with Gemini AI");
+            persistentChatSession = model.startChat({ generationConfig, history: [] });
+            
+            // If this is a new conversation, initialize with the system prompt
+            const systemPrompt = buildSystemPrompt(leetcodeUrl || lastLeetCodeUrl, null);
+            await persistentChatSession.sendMessage(systemPrompt);
+            console.log("System prompt sent to initialize conversation");
+        }
 
-        console.log("Sending message to Gemini AI...");
-        const result = await chatSession.sendMessage(systemPrompt);
+        // For ongoing conversations, just send the user's doubt
+        console.log("Sending user message to Gemini AI...");
+        const userMessage = userDoubt || "Tell me about this problem";
+        const result = await persistentChatSession.sendMessage(userMessage);
         console.log("Response received from Gemini AI...");
         return result.response.text();
 
@@ -56,6 +66,14 @@ export const callGeminiAPI = async (leetcodeUrl, userDoubt) => {
         console.error("Gemini API Error:", error);
         throw new Error(`${error.message || "Unknown error"}`);
     }
+};
+
+/**
+ * Resets the chat session
+ */
+export const resetChatSession = () => {
+    persistentChatSession = null;
+    console.log("Chat session reset");
 };
 
 /**
@@ -111,92 +129,20 @@ End sections with thought-provoking questions to encourage student engagement an
     `);
 
     // Add appropriate sections based on inputs
-    if (leetcodeUrl && userDoubt) {
-        // Both URL and doubt provided
+    if (leetcodeUrl) {
+        // URL provided
         promptParts.push(createProblemAnalysisPrompt(leetcodeUrl));
-        promptParts.push(createDoubtResponsePrompt(userDoubt));
-        promptParts.push(createImplementationGuidancePrompt());
-        promptParts.push(createSimilarProblemsPrompt());
-        promptParts.push(`
-## Teaching Approach
-
-You are a supportive DSA mentor who:
-- Guides students toward discovering solutions themselves
-- Uses the Socratic method to stimulate critical thinking
-- Provides just enough hints without solving problems entirely
-- Shows empathy and encouragement when students struggle
-- Uses concrete examples to illustrate abstract concepts
-- Connects new problems to fundamental principles the student already knows
-
-Keep your tone friendly, encouraging, and conversational - like a knowledgeable peer rather than a distant instructor.
-        `);
-    } else if (leetcodeUrl) {
-        // Only URL provided
-        promptParts.push(createProblemAnalysisPrompt(leetcodeUrl));
-        promptParts.push(`
-## Initial Assessment
-
-Since the student hasn't specified a particular doubt, help them get started by:
-
-1. Providing a clear, concise explanation of the problem
-2. Breaking down the problem into its core components
-3. Suggesting an approach to understanding and solving it
-4. Asking specific questions to guide their thinking
-
-Structure your response with clear headings and visual hierarchy.
-        `);
-    } else if (userDoubt) {
-        // Only doubt provided
-        if (lastLeetCodeUrl) {
-            promptParts.push(createProblemAnalysisPrompt(lastLeetCodeUrl));
-        }
-        promptParts.push(createDoubtResponsePrompt(userDoubt));
-        promptParts.push(`
-## Focused Guidance
-
-Address the student's specific question by:
-
-1. Breaking down the concept step-by-step with clear headings
-2. Using concrete examples with properly formatted code
-3. Connecting to fundamental DS&A principles
-4. Visualizing the concept through clear explanations
-
-Make your response visually engaging and easy to follow.
-        `);
     }
-
-    // Add example response structure template
-    promptParts.push(`
-# [Problem Title]
-## Understanding the Problem
-[Clear explanation of what the problem is asking]
-## Key Insights
-[Core concepts or patterns needed to solve this problem]
-## Approach
-[Step-by-step strategy for solving]
-## Implementation Guidance
-[Pseudocode or implementation considerations]
-## Complexity Analysis
-[Time and space complexity discussion]
-## Follow-up Questions
-[Thought-provoking questions to deepen understanding]
-    `);
     
-    // Add a reminder about user-friendly, modern response style
+    // Add an instruction about maintaining conversational flow
     promptParts.push(`
-# Final Styling Reminder
+## Conversational Guidelines
 
-Your response should look like it comes from a modern, polished educational platform:
-
-- Professional yet friendly tone
-- Visually appealing structure
-- Consistent formatting throughout
-- Clear information hierarchy
-- Proper syntax highlighting for all code
-- Balanced use of formatting (don't overuse bold/italics)
-- Strategic use of white space for readability
-
-Always end with a thought-provoking question that encourages deeper thinking about the concept.
+- Maintain a natural conversation flow without repeating introductions in each response
+- Remember previous context and build upon it in your responses
+- Respond directly to the student's current question without reintroducing yourself
+- Keep a friendly, supportive tone throughout the conversation
+- Assume the student remembers previous exchanges and avoid repetition
     `);
 
     return promptParts.join("\n\n");

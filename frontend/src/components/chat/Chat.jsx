@@ -3,7 +3,7 @@ import "../Chat.css";
 import ChatHeader from "./ChatHeader";
 import ChatMessages from "./ChatMessages";
 import ChatInput from "./ChatInput";
-import Sidebar from "./Sidebar/Sidebar";
+import Sidebar from "./sidebar/Sidebar";
 import { useChat } from "./hooks/useChat";
 
 const Chat = () => {
