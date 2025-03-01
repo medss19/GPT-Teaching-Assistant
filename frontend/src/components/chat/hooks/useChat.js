@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { callGeminiAPI } from "../utils/api";
+import { callGeminiAPI, resetChatSession } from "../utils/api";
 
 export const useChat = () => {
   const [url, setUrl] = useState("");
@@ -105,16 +105,28 @@ export const useChat = () => {
     setMessages([]);
     setUrl("");
     setDoubt("");
+    
+    // Reset the chat session for the new conversation (important for context isolation)
+    resetChatSession(newConversationId);
   };
 
   // Switch to a different conversation
   const switchConversation = (conversationId) => {
+    // Reset current chat session before switching to ensure clean context boundary
+    if (currentConversationId) {
+      resetChatSession(currentConversationId);
+    }
+
     const selectedConversation = conversations.find(conv => conv.id === conversationId);
     if (selectedConversation) {
       setCurrentConversationId(conversationId);
       setMessages(selectedConversation.messages || []);
       // Close sidebar on mobile after selection
       setIsSidebarOpen(false);
+      
+      // We'll reset the chat session for the selected conversation to force re-initialization
+      // based on the conversation history
+      resetChatSession(conversationId);
     }
   };
 
@@ -224,32 +236,32 @@ export const useChat = () => {
 
     // Validate URL format if provided
     if (url && !url.includes("leetcode.com/problems/")) {
-      setMessages(prevMessages => [...prevMessages, {
-        text: "Please enter a valid LeetCode problem URL (e.g., https://leetcode.com/problems/two-sum/)",
-        sender: "system"
-      }]);
-      return;
+        setMessages(prevMessages => [...prevMessages, {
+            text: "Please enter a valid LeetCode problem URL (e.g., https://leetcode.com/problems/two-sum/)",
+            sender: "system"
+        }]);
+        return;
     }
 
     // Create a conversation if none exists
     if (!currentConversationId) {
-      createNewConversation();
+        createNewConversation();
     }
 
     // Prepare user message
     let userText = "";
     if (url && doubt) {
-      userText = `Problem: ${url}\nDoubt: ${doubt}`;
+        userText = `Problem: ${url}\nDoubt: ${doubt}`;
     } else if (url) {
-      userText = `Problem: ${url}`;
+        userText = `Problem: ${url}`;
     } else {
-      userText = doubt;
+        userText = doubt;
     }
 
     const userMessage = {
-      text: userText,
-      sender: "user",
-      timestamp: Date.now()
+        text: userText,
+        sender: "user",
+        timestamp: Date.now()
     };
 
     const updatedMessages = [...messages, userMessage];
@@ -257,21 +269,21 @@ export const useChat = () => {
 
     // Update the conversation in state
     setConversations(prevConversations =>
-      prevConversations.map(conv => {
-        if (conv.id === currentConversationId) {
-          return {
-            ...conv,
-            messages: updatedMessages,
-            timestamp: Date.now()
-          };
-        }
-        return conv;
-      })
+        prevConversations.map(conv => {
+            if (conv.id === currentConversationId) {
+                return {
+                    ...conv,
+                    messages: updatedMessages,
+                    timestamp: Date.now()
+                };
+            }
+            return conv;
+        })
     );
 
     // Update conversation title if it's the first message
     if (messages.length === 0) {
-      updateConversationTitle(currentConversationId, updatedMessages);
+        updateConversationTitle(currentConversationId, updatedMessages);
     }
 
     setIsLoading(true);
@@ -282,75 +294,82 @@ export const useChat = () => {
 
     // Reset textarea height
     if (doubtInputRef.current) {
-      doubtInputRef.current.style.height = "auto";
+        doubtInputRef.current.style.height = "auto";
     }
 
     try {
-      console.log("Making call to Gemini API...");
-      const responseText = await callGeminiAPI(url, doubt);
+        console.log("Making call to Gemini API...");
+        // Check if this is the first message with a new URL
+        const isFirstMessageWithNewUrl = messages.length === 0 && url;
 
-      const assistantMessage = {
-        text: responseText,
-        sender: "assistant",
-        timestamp: Date.now()
-      };
+        // Important! Pass the conversation ID to maintain context properly
+        const responseText = await callGeminiAPI(url, doubt, isFirstMessageWithNewUrl, currentConversationId);
 
-      const finalMessages = [...updatedMessages, assistantMessage];
-      setMessages(finalMessages);
+        const assistantMessage = {
+            text: responseText,
+            sender: "assistant",
+            timestamp: Date.now()
+        };
 
-      // Update the conversation with the assistant's response
-      setConversations(prevConversations =>
-        prevConversations.map(conv => {
-          if (conv.id === currentConversationId) {
-            return {
-              ...conv,
-              messages: finalMessages,
-              timestamp: Date.now()
-            };
-          }
-          return conv;
-        })
-      );
+        const finalMessages = [...updatedMessages, assistantMessage];
+        setMessages(finalMessages);
+
+        // Update the conversation with the assistant's response
+        setConversations(prevConversations =>
+            prevConversations.map(conv => {
+                if (conv.id === currentConversationId) {
+                    return {
+                        ...conv,
+                        messages: finalMessages,
+                        timestamp: Date.now()
+                    };
+                }
+                return conv;
+            })
+        );
 
     } catch (error) {
-      console.error("Error:", error);
+        console.error("Error:", error);
 
-      // Store detailed error information for debugging
-      setErrorDetails(error.message || "Unknown error");
+        // Store detailed error information for debugging
+        setErrorDetails(error.message || "Unknown error");
 
-      const errorMessage = {
-        text: `Sorry, there was an error processing your request: ${error.message}. Please check the console for more details.`,
-        sender: "system",
-        timestamp: Date.now()
-      };
+        const errorMessage = {
+            text: `Sorry, there was an error processing your request: ${error.message}. Please check the console for more details.`,
+            sender: "system",
+            timestamp: Date.now()
+        };
 
-      const errorMessages = [...updatedMessages, errorMessage];
-      setMessages(errorMessages);
+        const errorMessages = [...updatedMessages, errorMessage];
+        setMessages(errorMessages);
 
-      // Update conversation with error message
-      setConversations(prevConversations =>
-        prevConversations.map(conv => {
-          if (conv.id === currentConversationId) {
-            return {
-              ...conv,
-              messages: errorMessages,
-              timestamp: Date.now()
-            };
-          }
-          return conv;
-        })
-      );
+        // Update conversation with error message
+        setConversations(prevConversations =>
+            prevConversations.map(conv => {
+                if (conv.id === currentConversationId) {
+                    return {
+                        ...conv,
+                        messages: errorMessages,
+                        timestamp: Date.now()
+                    };
+                }
+                return conv;
+            })
+        );
 
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  };
+};
 
   // Delete a conversation
   const deleteConversation = (conversationId, event) => {
     if (event) {
       event.stopPropagation();
     }
+
+    // Reset the chat session for the deleted conversation
+    resetChatSession(conversationId);
 
     // Remove from bookmarks if bookmarked
     if (isBookmarked(conversationId)) {

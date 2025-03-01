@@ -8,18 +8,24 @@ import {
 } from "./systemPrompts";
 import { patternLibrary } from "./teachingPatterns";
 
-let lastLeetCodeUrl = null; // Store the last used LeetCode URL
-let persistentChatSession = null; // Store the chat session
+// Store chat sessions by conversation ID instead of a single global session
+const chatSessions = {};
 
 /**
  * Calls the Gemini API with appropriate prompts based on the provided inputs
  * @param {string} leetcodeUrl - The LeetCode problem URL
  * @param {string} userDoubt - The user's specific question or doubt
  * @param {boolean} isNewConversation - Whether to start a new conversation
+ * @param {string} conversationId - The ID of the current conversation
  * @returns {Promise<string>} - The response from the Gemini API
  */
-export const callGeminiAPI = async (leetcodeUrl, userDoubt, isNewConversation = false) => {
+export const callGeminiAPI = async (leetcodeUrl, userDoubt, isNewConversation = false, conversationId) => {
     try {
+        // Validate conversation ID
+        if (!conversationId) {
+            throw new Error("Missing conversation ID");
+        }
+
         const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
         if (!apiKey) {
@@ -27,6 +33,7 @@ export const callGeminiAPI = async (leetcodeUrl, userDoubt, isNewConversation = 
             throw new Error("API key is missing. Please check your environment variables.");
         }
 
+        console.log(`Working with conversation ID: ${conversationId}`);
         console.log("Initializing Gemini AI with API key");
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
@@ -39,26 +46,34 @@ export const callGeminiAPI = async (leetcodeUrl, userDoubt, isNewConversation = 
             responseMimeType: "text/plain",
         };
 
-        // Update lastLeetCodeUrl if a new URL is provided
-        if (leetcodeUrl) {
-            lastLeetCodeUrl = leetcodeUrl;
-        }
-
-        // Start a new chat session if this is a new conversation or there isn't one already
-        if (isNewConversation || !persistentChatSession) {
-            console.log("Starting new chat session with Gemini AI");
-            persistentChatSession = model.startChat({ generationConfig, history: [] });
+        // Always start a new chat session if explicitly requested or if one doesn't exist for this conversation
+        if (isNewConversation || !chatSessions[conversationId]) {
+            console.log(`Starting new chat session for conversation ID: ${conversationId}`);
+            chatSessions[conversationId] = model.startChat({ generationConfig, history: [] });
             
-            // If this is a new conversation, initialize with the system prompt
-            const systemPrompt = buildSystemPrompt(leetcodeUrl || lastLeetCodeUrl, null);
-            await persistentChatSession.sendMessage(systemPrompt);
+            // Initialize with the system prompt
+            const systemPrompt = buildSystemPrompt(leetcodeUrl, userDoubt);
+            await chatSessions[conversationId].sendMessage(systemPrompt);
             console.log("System prompt sent to initialize conversation");
+            
+            // If LeetCode URL is provided, send a specific prompt to fetch problem details
+            if (leetcodeUrl) {
+                const problemContextPrompt = `Please provide a concise description of the problem at ${leetcodeUrl}. Include the key points like what the problem is asking for, the input/output format, and any constraints mentioned.`;
+                await chatSessions[conversationId].sendMessage(problemContextPrompt);
+                console.log("Problem context prompt sent");
+            }
         }
 
-        // For ongoing conversations, just send the user's doubt
-        console.log("Sending user message to Gemini AI...");
-        const userMessage = userDoubt || "Tell me about this problem";
-        const result = await persistentChatSession.sendMessage(userMessage);
+        // For ongoing conversations, construct a more informative message
+        console.log(`Sending user message to Gemini AI for conversation ID: ${conversationId}`);
+        let userMessage = userDoubt || "Tell me about this problem";
+        
+        // If URL was just provided but doubt is empty, make the request more specific
+        if (leetcodeUrl && !userDoubt) {
+            userMessage = "Please explain the problem at " + leetcodeUrl + " in detail, including the problem statement, examples, constraints, and approach.";
+        }
+        
+        const result = await chatSessions[conversationId].sendMessage(userMessage);
         console.log("Response received from Gemini AI...");
         return result.response.text();
 
@@ -69,20 +84,28 @@ export const callGeminiAPI = async (leetcodeUrl, userDoubt, isNewConversation = 
 };
 
 /**
- * Resets the chat session
+ * Resets the chat session for a specific conversation ID
+ * @param {string} conversationId - The ID of the conversation to reset
  */
-export const resetChatSession = () => {
-    persistentChatSession = null;
-    console.log("Chat session reset");
+export const resetChatSession = (conversationId) => {
+    if (conversationId && chatSessions[conversationId]) {
+        delete chatSessions[conversationId];
+        console.log(`Chat session reset for conversation ID: ${conversationId}`);
+    } else if (!conversationId) {
+        // Clear all sessions if no specific ID provided
+        Object.keys(chatSessions).forEach(id => delete chatSessions[id]);
+        console.log("All chat sessions reset");
+    }
 };
 
 /**
  * Builds the system prompt based on the available inputs
  * @param {string} leetcodeUrl - The LeetCode problem URL
  * @param {string} userDoubt - The user's specific question or doubt
+ * @param {string} problemContent - Optional problem content (if available)
  * @returns {string} - The constructed system prompt
  */
-const buildSystemPrompt = (leetcodeUrl, userDoubt) => {
+const buildSystemPrompt = (leetcodeUrl, userDoubt, problemContent = null) => {
     // Start with the base prompt
     let promptParts = [createBasePrompt()];
     
@@ -130,8 +153,34 @@ End sections with thought-provoking questions to encourage student engagement an
 
     // Add appropriate sections based on inputs
     if (leetcodeUrl) {
-        // URL provided
-        promptParts.push(createProblemAnalysisPrompt(leetcodeUrl));
+        if (problemContent) {
+            promptParts.push(`
+## Problem Context
+The following is the LeetCode problem from ${leetcodeUrl}:
+
+${problemContent}
+
+Please analyze this problem and be ready to answer questions about it.
+            `);
+        } else {
+            // Fallback to URL-only prompt
+            promptParts.push(createProblemAnalysisPrompt(leetcodeUrl));
+            
+            // Add enhanced instructions for LeetCode problems
+            promptParts.push(`
+## LeetCode Problem Handling
+
+When responding to questions about LeetCode problems:
+1. If I don't provide the full problem statement, first try to explain what the problem is about based on its name and URL
+2. If asked to explain the problem, provide a detailed breakdown including:
+   - Problem statement and objective
+   - Input/output format and examples
+   - Constraints and edge cases
+   - Possible approaches (brute force and optimized)
+3. Remember that I might ask follow-up questions about the same problem
+4. Don't ask me to provide the problem statement - try to determine it from the problem name
+            `);
+        }
     }
     
     // Add an instruction about maintaining conversational flow
@@ -143,6 +192,15 @@ End sections with thought-provoking questions to encourage student engagement an
 - Respond directly to the student's current question without reintroducing yourself
 - Keep a friendly, supportive tone throughout the conversation
 - Assume the student remembers previous exchanges and avoid repetition
+- If I provide a LeetCode problem URL, NEVER ask me to provide the problem statement - instead explain what you know about the problem based on its name and URL
+
+## Memory Instructions
+
+- You MUST remember that you're in a continuous conversation about data structures and algorithms
+- If I provide a LeetCode URL, YOU must remember that we're discussing that specific problem ONLY within this conversation
+- Do NOT reset your understanding when I provide only a URL without a specific question
+- If I say "explain this problem to me in detail", you should understand "this problem" refers to the LeetCode problem I provided in THIS conversation only
+- Your context is limited to THIS conversation only - you don't know anything about problems discussed in other conversations
     `);
 
     return promptParts.join("\n\n");
