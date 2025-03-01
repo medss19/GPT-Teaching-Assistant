@@ -227,3 +227,24 @@ frontend/
 - **Progress Tracking**: Monitor user improvement over time
 - **Problem Recommendations**: Suggest relevant problems based on user interaction
 - **Multiple GPT Models**: Allow switching between different teaching styles
+
+
+### Known Issues
+
+- **URL Request Repetition**: The chatbot may occasionally ask for a URL again even after you've already provided one.
+
+- **Context Confusion**: Sometimes the chatbot may reference previous conversations and produce answers related to prior questions when responding to a new query.
+
+- **Formula Formatting Limitations**: Complex mathematical notations (such as formulas with superscripts or special symbols) may display incorrectly or with formatting issues.
+
+- **Limited Teaching Patterns**: The current teaching interaction patterns are limited in scope and could be expanded in future updates.
+
+- **Occasional Glitches**: In rare instances, the conversation may experience a glitch that produces unrelated or unsolicited responses. If this occurs, restarting the application is recommended.
+
+**Example**
+
+![image](https://github.com/user-attachments/assets/6b4142aa-01fd-4b3b-90d7-2eb974c0ad17)
+
+
+I have worked diligently to create a user-friendly and functional chatbot experience, with continuous improvements planned for future releases.
+
