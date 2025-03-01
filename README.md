@@ -2,7 +2,9 @@
 
 A **Software Engineering Intern Assignment** that creates an interactive chat application UI functioning as a teaching assistant for Data Structures and Algorithms (DSA) problems. This application leverages GPT to provide guided assistance without revealing direct solutions.
 
-![DSA Teaching Assistant](https://github.com/medss19/GPT-Teaching-Assistant/raw/main/screenshot.png)
+
+https://github.com/user-attachments/assets/c356b553-eddb-4532-817d-88888432a8be
+
 
 ## Overview
 
@@ -225,11 +227,3 @@ frontend/
 - **Progress Tracking**: Monitor user improvement over time
 - **Problem Recommendations**: Suggest relevant problems based on user interaction
 - **Multiple GPT Models**: Allow switching between different teaching styles
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
