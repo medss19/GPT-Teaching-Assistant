@@ -118,24 +118,53 @@ export const useChat = () => {
     }
   };
 
-  // Update conversation title based on first LeetCode problem or content
+  // Update conversation title based on content type
   const updateConversationTitle = (conversationId, messages) => {
     if (messages.length > 0 && messages[0].sender === "user") {
       let title = "Untitled Conversation";
+      const userText = messages[0].text;
 
-      // Try to extract problem name from URL
-      const problemMatch = messages[0].text.match(/Problem: (.*?)\/problems\/(.*?)(\/|$)/);
-      if (problemMatch) {
-        title = problemMatch[2].replace(/-/g, ' ');
-      } else if (messages[0].text.includes("leetcode.com/problems/")) {
-        // Try to extract directly from text
-        const directMatch = messages[0].text.match(/leetcode\.com\/problems\/(.*?)(\/|$)/);
-        if (directMatch) {
-          title = directMatch[1].replace(/-/g, ' ');
+      // Check if message contains both problem URL and doubt
+      const combinedFormat = userText.match(/Problem: (.*?)\nDoubt: (.*)/s);
+
+      if (combinedFormat) {
+        // Case 1: Both URL and doubt provided
+        const problemUrl = combinedFormat[1];
+        const doubt = combinedFormat[2];
+
+        // Extract problem name from URL
+        const problemMatch = problemUrl.match(/leetcode\.com\/problems\/(.*?)(\/|$)/);
+        if (problemMatch) {
+          const problemName = problemMatch[1].replace(/-/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+
+          // Create a title that combines problem name and doubt
+          const shortDoubt = doubt.length > 20 ?
+            doubt.substring(0, 17) + '...' :
+            doubt;
+          title = `${problemName}: ${shortDoubt}`;
+        } else {
+          // Fallback to first few words of doubt if URL format is unexpected
+          const words = doubt.split(' ');
+          title = words.slice(0, 3).join(' ') + (words.length > 3 ? '...' : '');
         }
-      } else {
+      }
+      // Case 2: Only problem URL
+      else if (userText.startsWith("Problem:")) {
+        const problemMatch = userText.match(/Problem: (.*?)\/problems\/(.*?)(\/|$)/);
+        if (problemMatch) {
+          title = problemMatch[2].replace(/-/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+        }
+      }
+      // Case 3: Only doubt/question (no URL)
+      else {
         // Use first few words of the doubt as title
-        const words = messages[0].text.split(' ');
+        const words = userText.split(' ');
         title = words.slice(0, 3).join(' ') + (words.length > 3 ? '...' : '');
       }
 
@@ -145,7 +174,7 @@ export const useChat = () => {
           if (conv.id === conversationId) {
             return {
               ...conv,
-              title: title.charAt(0).toUpperCase() + title.slice(1)
+              title: title
             };
           }
           return conv;

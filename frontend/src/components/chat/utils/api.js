@@ -147,3 +147,60 @@ End sections with thought-provoking questions to encourage student engagement an
 
     return promptParts.join("\n\n");
 };
+
+/**
+ * Generates a title based on available inputs
+ * @param {string} leetcodeUrl - The LeetCode problem URL
+ * @param {string} userDoubt - The user's specific question or doubt
+ * @returns {string} - The generated title
+ */
+export const generateTitle = (leetcodeUrl, userDoubt) => {
+    // If both URL and doubt are provided
+    if (leetcodeUrl && userDoubt) {
+        // Extract problem name from URL
+        const problemName = extractProblemNameFromUrl(leetcodeUrl);
+        // Take a portion of the doubt for the title
+        const shortenedDoubt = userDoubt.length > 20 ? 
+            userDoubt.substring(0, 17) + '...' : 
+            userDoubt;
+        return `${problemName}: ${shortenedDoubt}`;
+    }
+    
+    // If only URL is provided
+    else if (leetcodeUrl) {
+        return extractProblemNameFromUrl(leetcodeUrl);
+    }
+    
+    // If only doubt is provided
+    else if (userDoubt) {
+        const words = userDoubt.split(' ');
+        return words.slice(0, 3).join(' ') + (words.length > 3 ? '...' : '');
+    }
+    
+    // Default title if nothing is provided
+    return "Untitled Conversation";
+};
+
+/**
+ * Extracts the problem name or number from a LeetCode URL
+ * @param {string} url - The LeetCode problem URL
+ * @returns {string} - The extracted problem name or a default string
+ */
+const extractProblemNameFromUrl = (url) => {
+    try {
+        // Extract problem name from URL
+        const problemMatch = url.match(/leetcode\.com\/problems\/(.*?)(\/|$)/);
+        if (problemMatch && problemMatch[1]) {
+            // Convert kebab-case to readable format
+            return problemMatch[1]
+                .replace(/-/g, ' ')
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
+        return "LeetCode Problem";
+    } catch (error) {
+        console.error("Error extracting problem name:", error);
+        return "LeetCode Problem";
+    }
+};
