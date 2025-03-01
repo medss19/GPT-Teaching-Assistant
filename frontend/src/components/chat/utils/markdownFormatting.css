@@ -189,3 +189,17 @@
   .contains-table {
     overflow-x: auto;
   }
+
+  /* Superscript */
+sup {
+  font-size: 0.75em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+  top: -0.5em;
+}
+
+/* Dark mode support for superscript */
+[data-theme="dark"] sup {
+  color: var(--text-color);
+}

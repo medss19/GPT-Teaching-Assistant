@@ -374,7 +374,7 @@ const parseTable = (tableRows) => {
   return { hasHeader, headers, rows };
 };
 
-// Process inline formatting like bold, italic, code, etc.
+// Process inline formatting like bold, italic, code, and superscript
 export const formatInlineMarkdown = (text) => {
   if (!text) return text;
 
@@ -387,7 +387,52 @@ export const formatInlineMarkdown = (text) => {
   // Handle italic text (*text*)
   parts = processItalicText(parts);
 
+  // Handle superscript text (<sup>text</sup>)
+  parts = processSuperscriptText(parts);
+
   return parts;
+};
+
+// New helper function to process superscript text
+const processSuperscriptText = (parts) => {
+  const processedParts = [];
+
+  parts.forEach((part) => {
+    if (typeof part === 'string') {
+      const supRegex = /<sup>([^<]+)<\/sup>/g;
+      let supParts = [];
+      let supLastIndex = 0;
+      let supMatch;
+
+      while ((supMatch = supRegex.exec(part)) !== null) {
+        // Add text before the match
+        if (supMatch.index > supLastIndex) {
+          supParts.push(part.substring(supLastIndex, supMatch.index));
+        }
+
+        // Add the superscript text
+        supParts.push(<sup key={`sup-${supMatch.index}`}>{supMatch[1]}</sup>);
+
+        supLastIndex = supMatch.index + supMatch[0].length;
+      }
+
+      // Add any remaining text
+      if (supLastIndex < part.length) {
+        supParts.push(part.substring(supLastIndex));
+      }
+
+      // If no superscript text was found, just use the original part
+      if (supParts.length === 0) {
+        processedParts.push(part);
+      } else {
+        processedParts.push(...supParts);
+      }
+    } else {
+      processedParts.push(part);
+    }
+  });
+
+  return processedParts;
 };
 
 // Helper function to process inline code
