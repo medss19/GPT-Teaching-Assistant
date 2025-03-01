@@ -33,7 +33,22 @@
     padding-left: 2rem;
   }
 
-  
+  /* Ensure spacing between list items */
+.markdown-ul li {
+  margin-bottom: 0.5rem; /* Adds space below every list item */
+}
+
+/* Add extra space above strong list items */
+.markdown-ul li > strong {
+  display: block; /* Ensures it takes up full width */
+  margin-top: 1rem; /* Adjust as needed for readability */
+}
+
+/* Maintain consistency in text color */
+.markdown-ul {
+  padding-left: 2rem;
+  color: var(--text-color, #24292e);
+}
   
   /* Code blocks */
   .code-block {
