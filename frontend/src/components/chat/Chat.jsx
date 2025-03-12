@@ -1,5 +1,9 @@
 import React, { useEffect } from "react";
 import "../Chat.css";
+import "./Sidebar/Sidebar.css";
+import "./ChatHeader.css";
+import "./ChatInput.css";
+import "./Welcome.css";
 import ChatHeader from "./ChatHeader";
 import ChatMessages from "./ChatMessages";
 import ChatInput from "./ChatInput";
