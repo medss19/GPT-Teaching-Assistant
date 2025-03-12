@@ -1,5 +1,7 @@
 # DSA Teaching Assistant
 
+**Fun Fact:** Built this entire project from scratch in under 24 hours—because who needs sleep when there’s code to write? 😤🔥
+
 A **Software Engineering Intern Assignment** that creates an interactive chat application UI functioning as a teaching assistant for Data Structures and Algorithms (DSA) problems. This application leverages GPT to provide guided assistance without revealing direct solutions.
 
 
