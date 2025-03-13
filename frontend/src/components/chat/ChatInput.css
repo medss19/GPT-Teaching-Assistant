@@ -1,109 +1,151 @@
 /* Modern Chat Input Form */
-  .chat-input-container {
-    flex-shrink: 0; /* Prevent input from shrinking */
-    width: 100%;
-    background-color: var(--background-color, #fff);
-    padding: 10px;
-    border-top: 1px solid var(--border-color, #e0e0e0);
-    transition: background-color 0.3s;
-    z-index: 10; /* Ensure input stays above content */
-  }
+.chat-input-container {
+  flex-shrink: 0; /* Prevent input from shrinking */
+  width: 100%;
+  background-color: var(--background-color, #fff);
+  padding: 10px;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+  transition: background-color 0.3s;
+  z-index: 10; /* Ensure input stays above content */
+}
 
 /* For dark mode compatibility */
-    [data-theme="dark"] .chat-input-container {
-        background-color: var(--dark-background-color, #222);
-        border-color: var(--dark-border-color, #444);
-      }
-  
-  .chat-input-wrapper {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    border-radius: 12px;
-    background-color: var(--background-color);
-    border: 1px solid var(--border-color);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    transition: box-shadow 0.3s;
+[data-theme="dark"] .chat-input-container {
+  background-color: var(--dark-background-color, #222);
+  border-color: var(--dark-border-color, #444);
+}
+
+.chat-input-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-radius: 12px;
+  background-color: var(--background-color);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s;
+}
+
+.chat-input-wrapper:focus-within {
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.2);
+  border-color: var(--primary-color);
+}
+
+.url-input-wrapper {
+  position: relative;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.url-input {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  background-color: transparent;
+  color: var(--text-color);
+  font-size: 14px;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.url-input::placeholder {
+  color: #9ca3af;
+}
+
+.url-input:focus {
+  outline: none;
+}
+
+.doubt-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.doubt-input {
+  flex: 1;
+  resize: none;
+  padding: 16px;
+  border: none;
+  background-color: transparent;
+  color: var(--text-color);
+  min-height: 60px;
+  max-height: 150px;
+  font-family: inherit;
+  font-size: 14px;
+  transition: background-color 0.3s, color 0.3s;
+  overflow-y: auto; /* Allow scrolling within the textarea if it reaches max height */
+}
+
+.doubt-input:focus {
+  outline: none;
+}
+
+/* Button styling */
+.send-button, .voice-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Send button enter animation */
+.send-button {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+/* Icon styling */
+.send-icon, .mic-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  display: block;
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Voice button states */
+.voice-button.listening {
+  background-color: rgba(220, 38, 38, 0.1);
+  border-radius: 50%;
+  padding: 5px;
+}
+
+.voice-button.listening .mic-icon {
+  filter: invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%);
+  animation: pulse 1.5s infinite;
+}
+
+/* Optional: Make icons pop slightly on hover */
+.send-button:hover .send-icon,
+.voice-button:hover .mic-icon {
+  transform: scale(1.1);
+}
+
+/* Pulse animation for recording indicator */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
   }
-  
-  .chat-input-wrapper:focus-within {
-    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.2);
-    border-color: var(--primary-color);
+  50% {
+    transform: scale(1.1);
   }
-  
-  .url-input-wrapper {
-    position: relative;
-    border-bottom: 1px solid var(--border-color);
+  100% {
+    transform: scale(1);
   }
-  
-  .url-input {
-    width: 100%;
-    padding: 16px;
-    border: none;
-    background-color: transparent;
-    color: var(--text-color);
-    font-size: 14px;
-    transition: background-color 0.3s, color 0.3s;
+}
+
+/* Fade in animation for send button */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
   }
-  
-  .url-input::placeholder {
-    color: #9ca3af;
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
-  
-  .url-input:focus {
-    outline: none;
-  }
-  
-  .doubt-input-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
-  
-  .doubt-input {
-    flex: 1;
-    resize: none;
-    padding: 16px;
-    border: none;
-    background-color: transparent;
-    color: var(--text-color);
-    min-height: 60px;
-    max-height: 150px;
-    font-family: inherit;
-    font-size: 14px;
-    transition: background-color 0.3s, color 0.3s;
-    overflow-y: auto; /* Allow scrolling within the textarea if it reaches max height */
-  }
-  
-  .doubt-input:focus {
-    outline: none;
-  }
-  
-  /* Send button container */
-  .send-button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-    margin-right: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.2s ease-in-out;
-  }
-  
-  /* Send icon styling */
-  .send-icon {
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
-    display: block;
-    transition: transform 0.2s ease-in-out;
-  }
-  
-  /* Optional: Make it pop slightly on hover */
-  .send-button:hover .send-icon {
-    transform: scale(1.1); 
-  }
-  
+}

@@ -210,6 +210,7 @@ When responding to questions about LeetCode problems:
     promptParts.push(`
 ## Conversational Guidelines
 
+- When asked to tell differences between topics, provide a clear and concise tabular comparison as well!
 - Do not give TOO long responses. Keep them a bit concise and to the point. Try to give responses with more graphics for visualization wherever possible.
 - Maintain a natural conversation flow without repeating introductions in each response
 - Remember previous context and build upon it in your responses
