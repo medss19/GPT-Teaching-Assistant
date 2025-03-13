@@ -5,66 +5,56 @@ import WelcomeMessage from "./WelcomeMessage";
 const ChatMessages = ({ messages, isLoading, messagesEndRef }) => {
   const [userHasScrolled, setUserHasScrolled] = useState(false);
   const chatContainerRef = useRef(null);
-  const lastScrollPositionRef = useRef(0);
-  const scrollTimerRef = useRef(null);
+  const scrollTimeout = useRef(null);
+  const isAutoScrollingRef = useRef(false);
   
-  // More sensitive scroll detection
+  // Handle scroll event
   const handleScroll = () => {
-    if (!chatContainerRef.current) return;
-    
-    // Clear any pending scroll timer
-    if (scrollTimerRef.current) {
-      clearTimeout(scrollTimerRef.current);
-    }
+    if (!chatContainerRef.current || isAutoScrollingRef.current) return;
     
     const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 50; // More generous threshold
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 80;
     
-    // Compare with previous position to determine scroll direction
-    const isScrollingUp = scrollTop < lastScrollPositionRef.current;
-    lastScrollPositionRef.current = scrollTop;
-    
-    // If user is actively scrolling up, mark it immediately
-    if (isScrollingUp && !isAtBottom) {
+    if (isNearBottom) {
+      setUserHasScrolled(false);
+    } else {
       setUserHasScrolled(true);
-    }
-    
-    // If at bottom, mark that user is no longer scrolled up, but with a delay
-    // to prevent interference with natural scroll momentum
-    if (isAtBottom) {
-      scrollTimerRef.current = setTimeout(() => {
-        setUserHasScrolled(false);
-      }, 100);
     }
   };
   
-  // Auto-scroll only when appropriate
+  // Scroll to bottom when new messages arrive
   useEffect(() => {
     const hasMessages = messages.length > 0;
     const lastMessage = hasMessages ? messages[messages.length - 1] : null;
-    const isNewMessage = hasMessages && lastMessage && 
-                         (lastMessage.sender === "assistant" || 
-                          lastMessage.sender === "system");
+    const isNewMessageBeingTyped = lastMessage?.isStreaming;
     
-    // Auto-scroll in these cases:
-    // 1. User hasn't manually scrolled up OR
-    // 2. This is a brand new message (not streaming update)
-    if ((!userHasScrolled || !lastMessage?.isStreaming) && messagesEndRef.current && isNewMessage) {
-      // Use requestAnimationFrame for smoother scrolling
-      requestAnimationFrame(() => {
-        messagesEndRef.current?.scrollIntoView({ 
-          behavior: "smooth", 
+    // Don't scroll if user has manually scrolled up (unless it's a brand new conversation)
+    if (messages.length <= 1 || !userHasScrolled || isNewMessageBeingTyped) {
+      if (messagesEndRef.current) {
+        // Set flag to prevent handling scroll events during auto-scrolling
+        isAutoScrollingRef.current = true;
+        
+        messagesEndRef.current.scrollIntoView({ 
+          behavior: messages.length === 1 ? "auto" : "smooth", 
           block: "end" 
         });
-      });
+        
+        // Clear the flag after scrolling completes
+        clearTimeout(scrollTimeout.current);
+        scrollTimeout.current = setTimeout(() => {
+          isAutoScrollingRef.current = false;
+        }, 150);
+      }
     }
-  }, [messages, isLoading, messagesEndRef, userHasScrolled]);
-
-  // Ensure good initial scroll position
+  }, [messages, userHasScrolled]);
+  
+  // Clean up timeout on component unmount
   useEffect(() => {
-    if (messagesEndRef.current && messages.length > 0) {
-      messagesEndRef.current.scrollIntoView({ behavior: "auto" });
-    }
+    return () => {
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current);
+      }
+    };
   }, []);
 
   return (
@@ -77,7 +67,10 @@ const ChatMessages = ({ messages, isLoading, messagesEndRef }) => {
         <WelcomeMessage />
       ) : (
         messages.map((msg, index) => (
-          <MessageItem key={index} message={msg} />
+          <MessageItem 
+            key={`${msg.timestamp}-${index}`} 
+            message={msg} 
+          />
         ))
       )}
       {isLoading && (

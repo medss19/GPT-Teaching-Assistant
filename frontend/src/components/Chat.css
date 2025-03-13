@@ -409,3 +409,8 @@ body {
   transition: background-color 0.3s;
   overflow: hidden; /* Hide overflow here */
 }
+
+/* Add to your CSS file */
+.message-content {
+  position: relative;
+}

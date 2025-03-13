@@ -14,6 +14,9 @@ export const useChat = () => {
   const [bookmarks, setBookmarks] = useState([]);
   const messagesEndRef = useRef(null);
   const doubtInputRef = useRef(null);
+  const [activeStreamStop, setActiveStreamStop] = useState(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [currentStreamingMsg, setCurrentStreamingMsg] = useState(null);
 
   // Load saved conversations, bookmarks, and clear old conversations on initial load
   useEffect(() => {
@@ -227,9 +230,57 @@ export const useChat = () => {
     return bookmarks.some(b => b.id === conversationId);
   };
 
+  // Stop the current streaming response
+  const stopStreaming = () => {
+    if (activeStreamStop) {
+      // Call the stop function
+      activeStreamStop();
+      
+      // Update the message to mark it as no longer streaming
+      setMessages(prevMessages => {
+        return prevMessages.map(msg => {
+          if (msg.timestamp === currentStreamingMsg) {
+            return { ...msg, isStreaming: false };
+          }
+          return msg;
+        });
+      });
+      
+      // Update the conversation with the finalized message
+      setConversations(prevConversations =>
+        prevConversations.map(conv => {
+          if (conv.id === currentConversationId) {
+            const updatedMessages = messages.map(msg => {
+              if (msg.timestamp === currentStreamingMsg) {
+                return { ...msg, isStreaming: false };
+              }
+              return msg;
+            });
+            return {
+              ...conv,
+              messages: updatedMessages,
+              timestamp: Date.now()
+            };
+          }
+          return conv;
+        })
+      );
+      
+      // Reset streaming state
+      setIsStreaming(false);
+      setCurrentStreamingMsg(null);
+      setActiveStreamStop(null);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!url && !doubt) return; // Only require at least one field to be filled
+
+    // If already streaming, stop it
+    if (isStreaming) {
+      stopStreaming();
+    }
 
     // Reset any previous error details
     setErrorDetails("");
@@ -304,6 +355,9 @@ export const useChat = () => {
       // Get the streaming response handler
       const responseHandler = await callGeminiAPI(url, doubt, isFirstMessageWithNewUrl, currentConversationId);
       
+      // Set streaming state to true
+      setIsStreaming(true);
+      
       // Create a placeholder message for streaming
       const assistantMessage = {
           text: "",
@@ -311,6 +365,7 @@ export const useChat = () => {
           timestamp: Date.now(),
           isStreaming: true
       };
+      setCurrentStreamingMsg(assistantMessage.timestamp);
   
       // Add the placeholder message and update state
       const messagesWithPlaceholder = [...updatedMessages, assistantMessage];
@@ -318,84 +373,83 @@ export const useChat = () => {
       
       // Start the stream
       const stopStream = responseHandler.streamFunction((chunk) => {
-          if (chunk === null) {
-              // Stream complete, finalize the message
-              setMessages(prevMessages => {
-                  const finalMessages = prevMessages.map(msg => {
-                      if (msg.timestamp === assistantMessage.timestamp) {
-                          return { ...msg, isStreaming: false };
-                      }
-                      return msg;
-                  });
-                  
-                  // Update the conversation with final messages
-                  setConversations(prevConversations =>
-                      prevConversations.map(conv => {
-                          if (conv.id === currentConversationId) {
-                              return {
-                                  ...conv,
-                                  messages: finalMessages,
-                                  timestamp: Date.now()
-                              };
-                          }
-                          return conv;
-                      })
-                  );
-                  
-                  return finalMessages;
-              });
-          } else {
-              // Append the chunk to the current message
-              setMessages(prevMessages => {
-                  return prevMessages.map(msg => {
-                      if (msg.timestamp === assistantMessage.timestamp) {
-                          return { ...msg, text: msg.text + chunk };
-                      }
-                      return msg;
-                  });
-              });
-          }
-      });
-  
-      // Store the stop function for cleanup (e.g., on component unmount)
-      // You might want to add this to a ref or state for cleanup
-      return () => {
-          if (stopStream) stopStream();
-      };
-
-    } catch (error) {
-        console.error("Error:", error);
-
-        // Store detailed error information for debugging
-        setErrorDetails(error.message || "Unknown error");
-
-        const errorMessage = {
-            text: `Sorry, there was an error processing your request: ${error.message}. Please check the console for more details.`,
-            sender: "system",
-            timestamp: Date.now()
-        };
-
-        const errorMessages = [...updatedMessages, errorMessage];
-        setMessages(errorMessages);
-
-        // Update conversation with error message
-        setConversations(prevConversations =>
-            prevConversations.map(conv => {
+        if (chunk === null) {
+          // Stream complete, finalize the message
+          setMessages(prevMessages => {
+            const finalMessages = prevMessages.map(msg => {
+              if (msg.timestamp === assistantMessage.timestamp) {
+                return { ...msg, isStreaming: false };
+              }
+              return msg;
+            });
+            
+            // Update streaming states
+            setIsStreaming(false);
+            setCurrentStreamingMsg(null);
+            
+            // Update the conversation with final messages
+            setConversations(prevConversations =>
+              prevConversations.map(conv => {
                 if (conv.id === currentConversationId) {
-                    return {
-                        ...conv,
-                        messages: errorMessages,
-                        timestamp: Date.now()
-                    };
+                  return {
+                    ...conv,
+                    messages: finalMessages,
+                    timestamp: Date.now()
+                  };
                 }
                 return conv;
-            })
-        );
+              })
+            );
+            
+            return finalMessages;
+          });
+        } else {
+          // Append the chunk to the current message
+          setMessages(prevMessages => {
+            return prevMessages.map(msg => {
+              if (msg.timestamp === assistantMessage.timestamp) {
+                return { ...msg, text: msg.text + chunk };
+              }
+              return msg;
+            });
+          });
+        }
+      });
+  
+      // Store the stop function for cleanup
+      setActiveStreamStop(() => stopStream);
+    } catch (error) {
+      console.error("Error:", error);
 
+      // Store detailed error information for debugging
+      setErrorDetails(error.message || "Unknown error");
+
+      const errorMessage = {
+          text: `Sorry, there was an error processing your request: ${error.message}. Please check the console for more details.`,
+          sender: "system",
+          timestamp: Date.now()
+      };
+
+      const errorMessages = [...updatedMessages, errorMessage];
+      setMessages(errorMessages);
+
+      // Update conversation with error message
+      setConversations(prevConversations =>
+        prevConversations.map(conv => {
+          if (conv.id === currentConversationId) {
+            return {
+              ...conv,
+              messages: errorMessages,
+              timestamp: Date.now()
+            };
+          }
+          return conv;
+        })
+      );
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
-};
+  };
 
   // Delete a conversation
   const deleteConversation = (conversationId, event) => {
@@ -457,6 +511,8 @@ export const useChat = () => {
     switchConversation,
     toggleBookmark,
     isBookmarked,
-    deleteConversation
+    deleteConversation,
+    isStreaming,
+    stopStreaming
   };
 };

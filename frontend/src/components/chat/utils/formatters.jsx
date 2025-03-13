@@ -42,9 +42,25 @@ export const formatMessage = (text) => {
   );
 };
 
+const preprocessText = (text) => {
+  // Convert HTML-style superscripts to unicode superscripts
+  return text.replace(/<sup>2<\/sup>/g, '²')
+             .replace(/<sup>3<\/sup>/g, '³')
+             .replace(/<sup>n<\/sup>/g, 'ⁿ')
+             .replace(/<sup>(\d+)<\/sup>/g, (match, p1) => {
+               // Map digits to unicode superscript characters
+               const superscriptMap = {
+                 '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+                 '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'
+               };
+               return p1.split('').map(digit => superscriptMap[digit] || digit).join('');
+             });
+};
+
 // Main function to handle markdown conversion
 export const formatMarkdown = (text) => {
   if (!text) return null;
+  text = preprocessText(text);
 
   // Pre-process the text to extract tables
   const { processedText, tables } = extractTables(text);
@@ -387,7 +403,7 @@ export const formatInlineMarkdown = (text) => {
   // Handle italic text (*text*)
   parts = processItalicText(parts);
 
-  // Handle superscript text (<sup>text</sup>)
+  // Handle superscript text (^text^) - modify this line
   parts = processSuperscriptText(parts);
 
   return parts;
@@ -399,34 +415,65 @@ const processSuperscriptText = (parts) => {
 
   parts.forEach((part) => {
     if (typeof part === 'string') {
-      const supRegex = /<sup>([^<]+)<\/sup>/g;
-      let supParts = [];
-      let supLastIndex = 0;
-      let supMatch;
-
-      while ((supMatch = supRegex.exec(part)) !== null) {
-        // Add text before the match
-        if (supMatch.index > supLastIndex) {
-          supParts.push(part.substring(supLastIndex, supMatch.index));
+      // Process HTML sup tags
+      const htmlSupRegex = /<sup>([^<]+)<\/sup>/g;
+      // Also process caret-style superscripts like text^superscript^
+      const caretSupRegex = /\^([^\^]+)\^/g;
+      
+      let lastIndex = 0;
+      let match;
+      let resultParts = [];
+      
+      // First process HTML tags
+      while ((match = htmlSupRegex.exec(part)) !== null) {
+        if (match.index > lastIndex) {
+          resultParts.push(part.substring(lastIndex, match.index));
         }
-
-        // Add the superscript text
-        supParts.push(<sup key={`sup-${supMatch.index}`}>{supMatch[1]}</sup>);
-
-        supLastIndex = supMatch.index + supMatch[0].length;
+        resultParts.push(<sup key={`sup-html-${match.index}`}>{match[1]}</sup>);
+        lastIndex = match.index + match[0].length;
       }
-
-      // Add any remaining text
-      if (supLastIndex < part.length) {
-        supParts.push(part.substring(supLastIndex));
+      
+      // Add remaining text
+      if (lastIndex < part.length) {
+        resultParts.push(part.substring(lastIndex));
       }
-
-      // If no superscript text was found, just use the original part
-      if (supParts.length === 0) {
-        processedParts.push(part);
-      } else {
-        processedParts.push(...supParts);
+      
+      // If no HTML tags were found, use the original part
+      if (resultParts.length === 0) {
+        resultParts = [part];
       }
+      
+      // Now process any caret-style superscripts in the parts
+      const finalParts = [];
+      resultParts.forEach(subPart => {
+        if (typeof subPart === 'string') {
+          let caretLastIndex = 0;
+          let caretMatch;
+          let caretParts = [];
+          
+          while ((caretMatch = caretSupRegex.exec(subPart)) !== null) {
+            if (caretMatch.index > caretLastIndex) {
+              caretParts.push(subPart.substring(caretLastIndex, caretMatch.index));
+            }
+            caretParts.push(<sup key={`sup-caret-${caretMatch.index}`}>{caretMatch[1]}</sup>);
+            caretLastIndex = caretMatch.index + caretMatch[0].length;
+          }
+          
+          if (caretLastIndex < subPart.length) {
+            caretParts.push(subPart.substring(caretLastIndex));
+          }
+          
+          if (caretParts.length > 0) {
+            finalParts.push(...caretParts);
+          } else {
+            finalParts.push(subPart);
+          }
+        } else {
+          finalParts.push(subPart);
+        }
+      });
+      
+      processedParts.push(...finalParts);
     } else {
       processedParts.push(part);
     }

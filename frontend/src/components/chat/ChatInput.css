@@ -81,7 +81,7 @@
 }
 
 /* Button styling */
-.send-button, .voice-button {
+.send-button, .voice-button, .stop-button {
   background: none;
   border: none;
   cursor: pointer;
@@ -99,7 +99,7 @@
 }
 
 /* Icon styling */
-.send-icon, .mic-icon {
+.send-icon, .mic-icon, .pause-icon {
   width: 24px;
   height: 24px;
   object-fit: contain;
@@ -123,6 +123,28 @@
 .send-button:hover .send-icon,
 .voice-button:hover .mic-icon {
   transform: scale(1.1);
+}
+
+/* Add this to your styles for the stop button */
+
+.stop-button {
+  transition: transform 0.2s ease-in-out;
+}
+
+.stop-button:hover {
+  transform: scale(1.1);
+}
+
+/* Optional animation for the stop button */
+.stop-button {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+/* Disable input fields during streaming */
+.chat-input-container input:disabled,
+.chat-input-container textarea:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 /* Pulse animation for recording indicator */

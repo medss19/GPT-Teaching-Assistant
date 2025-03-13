@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import sendIcon from "../../assets/send.png";
 import micIcon from "../../assets/mic.png"; // You'll need to add a microphone icon
+import pauseIcon from "../../assets/pause.png"; 
 
 const ChatInput = ({
   url,
@@ -9,7 +10,9 @@ const ChatInput = ({
   setDoubt,
   handleSubmit,
   doubtInputRef,
-  handleTextareaInput
+  handleTextareaInput,
+  isStreaming,
+  onStopStreaming
 }) => {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
@@ -94,6 +97,7 @@ const ChatInput = ({
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               className="url-input"
+              disabled={isStreaming}
             />
           </div>
 
@@ -110,23 +114,37 @@ const ChatInput = ({
               }}
               onInput={handleTextareaInput}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey && hasContent) {
+                if (e.key === "Enter" && !e.shiftKey && hasContent && !isStreaming) {
                   e.preventDefault(); // Prevents a new line
                   handleSubmit(e); // Submits the form
                 }
               }}
+              disabled={isStreaming}
             />
             <button 
               type="button" 
               className={`voice-button ${isListening ? 'listening' : ''}`}
               onClick={toggleListening}
+              disabled={isStreaming}
             >
               <img src={micIcon} alt="Voice" className="mic-icon" />
             </button>
-            {hasContent && (
-              <button type="submit" className="send-button">
-                <img src={sendIcon} alt="Send" className="send-icon" />
+            
+            {isStreaming ? (
+              <button 
+                type="button" 
+                className="stop-button"
+                onClick={onStopStreaming}
+                aria-label="Stop text generation"
+              >
+                <img src={pauseIcon} alt="Pause" className="pause-icon" />
               </button>
+            ) : (
+              hasContent && (
+                <button type="submit" className="send-button">
+                  <img src={sendIcon} alt="Send" className="send-icon" />
+                </button>
+              )
             )}
           </div>
         </div>

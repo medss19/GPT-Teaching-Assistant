@@ -40,7 +40,6 @@
 
 /* Add extra space above strong list items */
 .markdown-ul li > strong {
-  display: block; /* Ensures it takes up full width */
   margin-top: 1rem; /* Adjust as needed for readability */
 }
 

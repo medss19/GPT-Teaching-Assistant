@@ -33,6 +33,8 @@ const Chat = () => {
     conversations,
     toggleBookmark,
     isBookmarked,
+    stopStreaming,
+    isStreaming,
     deleteConversation,
     bookmarks
   } = useChat();
@@ -80,6 +82,8 @@ const Chat = () => {
             handleSubmit={handleSubmit}
             doubtInputRef={doubtInputRef}
             handleTextareaInput={handleTextareaInput}
+            isStreaming={isStreaming}
+            onStopStreaming={stopStreaming}
           />
         </div>
       </div>
