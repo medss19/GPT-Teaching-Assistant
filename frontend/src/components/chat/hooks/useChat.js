@@ -298,35 +298,70 @@ export const useChat = () => {
     }
 
     try {
-        console.log("Making call to Gemini API...");
-        // Check if this is the first message with a new URL
-        const isFirstMessageWithNewUrl = messages.length === 0 && url;
-
-        // Important! Pass the conversation ID to maintain context properly
-        const responseText = await callGeminiAPI(url, doubt, isFirstMessageWithNewUrl, currentConversationId);
-
-        const assistantMessage = {
-            text: responseText,
-            sender: "assistant",
-            timestamp: Date.now()
-        };
-
-        const finalMessages = [...updatedMessages, assistantMessage];
-        setMessages(finalMessages);
-
-        // Update the conversation with the assistant's response
-        setConversations(prevConversations =>
-            prevConversations.map(conv => {
-                if (conv.id === currentConversationId) {
-                    return {
-                        ...conv,
-                        messages: finalMessages,
-                        timestamp: Date.now()
-                    };
-                }
-                return conv;
-            })
-        );
+      console.log("Making call to Gemini API...");
+      const isFirstMessageWithNewUrl = messages.length === 0 && url;
+  
+      // Get the streaming response handler
+      const responseHandler = await callGeminiAPI(url, doubt, isFirstMessageWithNewUrl, currentConversationId);
+      
+      // Create a placeholder message for streaming
+      const assistantMessage = {
+          text: "",
+          sender: "assistant",
+          timestamp: Date.now(),
+          isStreaming: true
+      };
+  
+      // Add the placeholder message and update state
+      const messagesWithPlaceholder = [...updatedMessages, assistantMessage];
+      setMessages(messagesWithPlaceholder);
+      
+      // Start the stream
+      const stopStream = responseHandler.streamFunction((chunk) => {
+          if (chunk === null) {
+              // Stream complete, finalize the message
+              setMessages(prevMessages => {
+                  const finalMessages = prevMessages.map(msg => {
+                      if (msg.timestamp === assistantMessage.timestamp) {
+                          return { ...msg, isStreaming: false };
+                      }
+                      return msg;
+                  });
+                  
+                  // Update the conversation with final messages
+                  setConversations(prevConversations =>
+                      prevConversations.map(conv => {
+                          if (conv.id === currentConversationId) {
+                              return {
+                                  ...conv,
+                                  messages: finalMessages,
+                                  timestamp: Date.now()
+                              };
+                          }
+                          return conv;
+                      })
+                  );
+                  
+                  return finalMessages;
+              });
+          } else {
+              // Append the chunk to the current message
+              setMessages(prevMessages => {
+                  return prevMessages.map(msg => {
+                      if (msg.timestamp === assistantMessage.timestamp) {
+                          return { ...msg, text: msg.text + chunk };
+                      }
+                      return msg;
+                  });
+              });
+          }
+      });
+  
+      // Store the stop function for cleanup (e.g., on component unmount)
+      // You might want to add this to a ref or state for cleanup
+      return () => {
+          if (stopStream) stopStream();
+      };
 
     } catch (error) {
         console.error("Error:", error);

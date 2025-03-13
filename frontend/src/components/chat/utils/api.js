@@ -64,20 +64,41 @@ export const callGeminiAPI = async (leetcodeUrl, userDoubt, isNewConversation = 
             }
         }
 
-        // For ongoing conversations, construct a more informative message
-        console.log(`Sending user message to Gemini AI for conversation ID: ${conversationId}`);
+        console.log(`Sending user message to Gemini API for conversation ID: ${conversationId}`);
         let userMessage = userDoubt || "Tell me about this problem";
         
-        // If URL was just provided but doubt is empty, make the request more specific
         if (leetcodeUrl && !userDoubt) {
             userMessage = "Please explain the problem at " + leetcodeUrl + " in detail, including the problem statement, examples, constraints, and approach.";
         }
         
+        // Return a stream handler instead of the full response
         const result = await chatSessions[conversationId].sendMessage(userMessage);
-        console.log("Response received from Gemini AI...");
-        return result.response.text();
-
-    } catch (error) {
+        return {
+            text: result.response.text(),
+            streamFunction: (callback) => {
+                // This is a simulated stream since Gemini doesn't natively support streaming
+                // We'll break the response into chunks and send them incrementally
+                const fullText = result.response.text();
+                let currentIndex = 0;
+                
+                const streamInterval = setInterval(() => {
+                    // Send 1-3 characters at a time to simulate variable typing speed
+                    const chunkSize = Math.floor(Math.random() * 3) + 1;
+                    const chunk = fullText.substring(currentIndex, currentIndex + chunkSize);
+                    currentIndex += chunkSize;
+                    
+                    callback(chunk);
+                    
+                    if (currentIndex >= fullText.length) {
+                        clearInterval(streamInterval);
+                        callback(null); // Signal end of stream
+                    }
+                }, 30); // Adjust timing for realistic typing speed
+                
+                return () => clearInterval(streamInterval); // Return cleanup function
+            }
+        };
+     } catch (error) {
         console.error("Gemini API Error:", error);
         throw new Error(`${error.message || "Unknown error"}`);
     }
