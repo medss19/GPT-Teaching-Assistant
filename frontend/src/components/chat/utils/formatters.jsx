@@ -410,6 +410,7 @@ export const formatInlineMarkdown = (text) => {
 };
 
 // New helper function to process superscript text
+// Updated helper function to process superscript text
 const processSuperscriptText = (parts) => {
   const processedParts = [];
 
@@ -417,6 +418,11 @@ const processSuperscriptText = (parts) => {
     if (typeof part === 'string') {
       // Process HTML sup tags
       const htmlSupRegex = /<sup>([^<]+)<\/sup>/g;
+      
+      // Process programming-style superscripts (e.g., O(n^2), log^2 n)
+      // This looks for word^number or ) with ^ followed by alphanumeric characters
+      const singleCaretRegex = /(\w|\))\^(\w+|\d+)/g;
+      
       // Also process caret-style superscripts like text^superscript^
       const caretSupRegex = /\^([^\^]+)\^/g;
       
@@ -424,23 +430,28 @@ const processSuperscriptText = (parts) => {
       let match;
       let resultParts = [];
       
-      // First process HTML tags
-      while ((match = htmlSupRegex.exec(part)) !== null) {
+      // First check for single caret notation (most common in programming contexts)
+      let processedText = part.replace(singleCaretRegex, (match, base, exp) => {
+        return `${base}<sup>${exp}</sup>`;
+      });
+      
+      // Now process HTML tags
+      while ((match = htmlSupRegex.exec(processedText)) !== null) {
         if (match.index > lastIndex) {
-          resultParts.push(part.substring(lastIndex, match.index));
+          resultParts.push(processedText.substring(lastIndex, match.index));
         }
         resultParts.push(<sup key={`sup-html-${match.index}`}>{match[1]}</sup>);
         lastIndex = match.index + match[0].length;
       }
       
       // Add remaining text
-      if (lastIndex < part.length) {
-        resultParts.push(part.substring(lastIndex));
+      if (lastIndex < processedText.length) {
+        resultParts.push(processedText.substring(lastIndex));
       }
       
-      // If no HTML tags were found, use the original part
+      // If no HTML tags were found, use the processed text (which might have replaced superscripts)
       if (resultParts.length === 0) {
-        resultParts = [part];
+        resultParts = [processedText];
       }
       
       // Now process any caret-style superscripts in the parts
