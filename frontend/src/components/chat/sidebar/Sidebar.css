@@ -1,136 +1,151 @@
 /* Sidebar styles */
 .sidebar {
-    width: 280px;
-    height: 100vh;
-    background-color: var(--sidebar-bg);
-    border-right: 1px solid var(--border-color);
-    overflow-y: auto;
-    transition: transform 0.3s ease, background-color 0.3s;
-    z-index: 100;
-  }
-  
-  .sidebar-header {
-    padding: 20px 16px;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .sidebar-header h2 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--text-color);
-  }
-  
-  .close-sidebar {
-    display: none;
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: var(--text-color);
-  }
-  
-  .sidebar-content {
-    padding: 16px;
-  }
-  
-  .new-chat-button {
-    width: 100%;
-    padding: 12px;
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 500;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 20px;
-    transition: background-color 0.2s;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  }
-  
-  .new-chat-button:hover {
-    background-color: var(--primary-dark);
-  }
-  
-  .plus-icon {
-    margin-right: 8px;
-    font-weight: bold;
-  }
-  
-  .history-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  .history-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #eef4ff;
-    padding: 12px 16px;
-    border-radius: 8px;
-    transition: 0.3s ease-in-out;
-    border: 1px solid #d6e4ff;
-  }
-  
-  .history-item:hover {
-    background-color: rgba(59, 130, 246, 0.1);
-  }
-  
-  .history-item.active {
-    background-color: var(--history-active-bg);
-    font-weight: 500;
-  }
-  
-  .history-item-content {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .history-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #333;
-  }
-  
-  .history-date {
-    font-size: 12px;
-    color: #666;
-    margin-top: 4px;
-  }
-  
-  .bookmark-button:hover .bookmark-icon,
-  .delete-button:hover .delete-icon {
-    transform: scale(1.1);
-  }
-  
-  /* Hover effect */
-  .history-item:hover {
-    background: #daeaff;
-  }
-  
-  .history-actions {
-    display: flex;
-  }
-  
-  .bookmark-button,
-  .delete-button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 5px;
-  }
-  
-  .bookmark-icon,
-  .delete-icon {
-    width: 18px; /* Adjust as needed */
-    height: 18px;
-    object-fit: contain;
-    display: block;
-  }
+  width: 280px;
+  height: 100vh;
+  background-color: var(--sidebar-bg);
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+  transition: transform 0.3s ease, background-color 0.3s;
+  z-index: 100;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+.sidebar.closed {
+  transform: translateX(-100%);
+}
+
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-header {
+  padding: 20px 16px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar-header h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.close-sidebar {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.close-sidebar:hover {
+  background-color: var(--border-color);
+}
+
+.sidebar-content {
+  padding: 16px;
+}
+
+.new-chat-button {
+  width: 100%;
+  padding: 12px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  transition: background-color 0.2s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.new-chat-button:hover {
+  background-color: var(--primary-dark);
+}
+
+.plus-icon {
+  margin-right: 8px;
+  font-weight: bold;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #eef4ff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  transition: 0.3s ease-in-out;
+  border: 1px solid #d6e4ff;
+}
+
+.history-item:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  background: #daeaff;
+}
+
+.history-item.active {
+  background-color: var(--history-active-bg);
+  font-weight: 500;
+}
+
+.history-item-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.history-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.history-date {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.bookmark-button:hover .bookmark-icon,
+.delete-button:hover .delete-icon {
+  transform: scale(1.1);
+}
+
+.history-actions {
+  display: flex;
+}
+
+.bookmark-button,
+.delete-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.bookmark-icon,
+.delete-icon {
+  width: 18px; /* Adjust as needed */
+  height: 18px;
+  object-fit: contain;
+  display: block;
+}

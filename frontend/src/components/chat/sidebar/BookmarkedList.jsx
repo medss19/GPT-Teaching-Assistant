@@ -1,4 +1,3 @@
-// components/chat/Sidebar/BookmarkedList.jsx
 import React from "react";
 import bookmarkedStar from "../../../assets/bookmarked.png";
 import deleteIcon from "../../../assets/delete.png";
@@ -11,6 +10,24 @@ const BookmarkedList = ({
   toggleBookmark,
   deleteConversation
 }) => {
+  // Prevent event propagation for conversation switching
+  const handleConversationClick = (id, e) => {
+    if (e) e.stopPropagation();
+    switchConversation(id);
+  };
+
+  // Prevent event propagation for bookmark toggle
+  const handleBookmarkClick = (id, e) => {
+    e.stopPropagation();
+    toggleBookmark(id, e);
+  };
+
+  // Prevent event propagation for conversation deletion
+  const handleDeleteClick = (id, e) => {
+    e.stopPropagation();
+    deleteConversation(id, e);
+  };
+
   return (
     <div className="bookmarks-section">
       <h3>Bookmarked</h3>
@@ -19,14 +36,16 @@ const BookmarkedList = ({
           <div
             key={item.id}
             className={`history-item ${item.id === currentConversationId ? 'active' : ''}`}
-            onClick={() => switchConversation(item.id)}
+            onClick={(e) => handleConversationClick(item.id, e)}
           >
-            <span className="history-title">{item.title || "Untitled"}</span>
-            <span className="history-date">{getFormattedDate(item.timestamp)}</span>
+            <div className="history-item-content">
+              <span className="history-title">{item.title || "Untitled"}</span>
+              <span className="history-date">{getFormattedDate(item.timestamp)}</span>
+            </div>
             <div className="history-actions">
               <button
                 className="bookmark-button active"
-                onClick={(e) => toggleBookmark(item.id, e)}
+                onClick={(e) => handleBookmarkClick(item.id, e)}
                 title="Remove bookmark"
               >
                 <img
@@ -38,7 +57,7 @@ const BookmarkedList = ({
 
               <button
                 className="delete-button"
-                onClick={(e) => deleteConversation(item.id, e)}
+                onClick={(e) => handleDeleteClick(item.id, e)}
                 title="Delete conversation"
               >
                 <img

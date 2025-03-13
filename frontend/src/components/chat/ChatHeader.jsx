@@ -1,10 +1,19 @@
 import React from "react";
 import { Menu, Sun, Moon, AlertCircle } from "lucide-react"; // Using lucide-react icons
 
-const ChatHeader = ({ toggleSidebar, toggleDarkMode, darkMode, errorDetails }) => {
+const ChatHeader = ({ toggleSidebar, toggleDarkMode, darkMode, errorDetails, isSidebarOpen }) => {
   return (
     <div className="chat-header">
       <div className="header-left">
+        {!isSidebarOpen && (
+          <button 
+            className="sidebar-toggle" 
+            onClick={toggleSidebar} 
+            aria-label="Open sidebar"
+          >
+            <Menu size={18} />
+          </button>
+        )}
         <div className="header-title">
           <h1>DSA Teaching Assistant</h1>
           <span className="header-subtitle">Data Structures & Algorithms</span>

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import "../Chat.css";
 import "./Sidebar/Sidebar.css";
 import "./ChatHeader.css";
@@ -39,15 +39,19 @@ const Chat = () => {
     bookmarks
   } = useChat();
 
-  // Auto-scroll effect is now moved to ChatMessages component
-  // We no longer need this useEffect here
+  const toggleSidebar = (e) => {
+    if (e) {
+      e.stopPropagation(); // Prevent event bubbling
+    }
+    setIsSidebarOpen(prev => !prev);
+  };
 
   return (
     <div className="app-container">
       {/* Sidebar for conversation history */}
       <Sidebar
         isSidebarOpen={isSidebarOpen}
-        toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+        toggleSidebar={toggleSidebar}
         createNewConversation={createNewConversation}
         switchConversation={switchConversation}
         currentConversationId={currentConversationId}
@@ -59,13 +63,14 @@ const Chat = () => {
       />
 
       {/* Main chat area */}
-      <div className="chat-wrapper">
+      <div className={`chat-wrapper ${isSidebarOpen ? 'sidebar-open' : ''}`}>
         <div className="chat-container">
           <ChatHeader 
-            toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
+            toggleSidebar={toggleSidebar} 
             toggleDarkMode={toggleDarkMode} 
             darkMode={darkMode} 
-            errorDetails={errorDetails} 
+            errorDetails={errorDetails}
+            isSidebarOpen={isSidebarOpen}
           />
 
           <ChatMessages 
