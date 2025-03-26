@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { 
-    createBasePrompt, 
-    createProblemAnalysisPrompt, 
+import {
+    createBasePrompt,
+    createProblemAnalysisPrompt,
     createDoubtResponsePrompt,
     createImplementationGuidancePrompt,
     createSimilarProblemsPrompt
@@ -19,7 +19,7 @@ const chatSessions = {};
  * @param {string} conversationId - The ID of the current conversation
  * @returns {Promise<string>} - The response from the Gemini API
  */
-export const callGeminiAPI = async (leetcodeUrl, userDoubt, isNewConversation = false, conversationId) => {
+export const callGeminiAPI = async (leetcodeUrl, userDoubt, isNewConversation = false, conversationId, codeSnippet = null) => {
     try {
         // Validate conversation ID
         if (!conversationId) {
@@ -31,6 +31,21 @@ export const callGeminiAPI = async (leetcodeUrl, userDoubt, isNewConversation = 
         if (!apiKey) {
             console.error("API Key not found");
             throw new Error("API key is missing. Please check your environment variables.");
+        }
+
+        if (codeSnippet) {
+            const codeAnalysis = analyzeCodeSubmission(codeSnippet);
+            const codeContextPrompt = `
+## Code Submission Analysis
+Concept Identified: ${codeAnalysis.conceptIdentified}
+Potential Improvements: 
+${codeAnalysis.potentialImprovements.join('\n')}
+
+Guiding Questions:
+${codeAnalysis.learningQuestions.join('\n')}
+            `;
+
+            await chatSessions[conversationId].sendMessage(codeContextPrompt);
         }
 
         console.log(`Working with conversation ID: ${conversationId}`);
@@ -50,12 +65,12 @@ export const callGeminiAPI = async (leetcodeUrl, userDoubt, isNewConversation = 
         if (isNewConversation || !chatSessions[conversationId]) {
             console.log(`Starting new chat session for conversation ID: ${conversationId}`);
             chatSessions[conversationId] = model.startChat({ generationConfig, history: [] });
-            
+
             // Initialize with the system prompt
             const systemPrompt = buildSystemPrompt(leetcodeUrl, userDoubt);
             await chatSessions[conversationId].sendMessage(systemPrompt);
             console.log("System prompt sent to initialize conversation");
-            
+
             // If LeetCode URL is provided, send a specific prompt to fetch problem details
             if (leetcodeUrl) {
                 const problemContextPrompt = `Please provide a concise description of the problem at ${leetcodeUrl}. Include the key points like what the problem is asking for, the input/output format, and any constraints mentioned.`;
@@ -66,39 +81,61 @@ export const callGeminiAPI = async (leetcodeUrl, userDoubt, isNewConversation = 
 
         console.log(`Sending user message to Gemini API for conversation ID: ${conversationId}`);
         let userMessage = userDoubt || "Tell me about this problem";
-        
+
         if (leetcodeUrl && !userDoubt) {
             userMessage = "Please explain the problem at " + leetcodeUrl + " in detail, including the problem statement, examples, constraints, and approach.";
         }
-        
-        // Return a stream handler instead of the full response
+
+        // Get the full response text
         const result = await chatSessions[conversationId].sendMessage(userMessage);
+        const fullText = result.response.text();
+
+        // Return a more advanced stream handler
         return {
-            text: result.response.text(),
+            text: fullText,
             streamFunction: (callback) => {
-                // This is a simulated stream since Gemini doesn't natively support streaming
-                // We'll break the response into chunks and send them incrementally
-                const fullText = result.response.text();
                 let currentIndex = 0;
-                
-                const streamInterval = setInterval(() => {
-                    // Send 1-3 characters at a time to simulate variable typing speed
-                    const chunkSize = Math.floor(Math.random() * 3) + 1;
-                    const chunk = fullText.substring(currentIndex, currentIndex + chunkSize);
-                    currentIndex += chunkSize;
-                    
-                    callback(chunk);
-                    
+                const chunkSize = 5;  // Characters per chunk
+                const baseInterval = 30;  // Base interval between chunks
+
+                const streamChunk = () => {
                     if (currentIndex >= fullText.length) {
-                        clearInterval(streamInterval);
-                        callback(null); // Signal end of stream
+                        callback(null);  // Signal end of stream
+                        return;
                     }
-                }, 30); // Adjust timing for realistic typing speed
-                
-                return () => clearInterval(streamInterval); // Return cleanup function
+
+                    // Vary chunk size and interval for more natural typing
+                    const variableChunkSize = Math.floor(Math.random() * chunkSize) + 1;
+                    const nextIndex = Math.min(
+                        currentIndex + variableChunkSize,
+                        fullText.length
+                    );
+
+                    const chunk = fullText.substring(currentIndex, nextIndex);
+                    callback(chunk);
+                    currentIndex = nextIndex;
+
+                    // If all content is streamed, stop
+                    if (currentIndex >= fullText.length) {
+                        callback(null);  // Signal end of stream
+                        return;
+                    }
+
+                    // Use requestAnimationFrame for smoother rendering
+                    requestAnimationFrame(() => {
+                        const variableInterval = baseInterval + Math.random() * 20;
+                        setTimeout(streamChunk, variableInterval);
+                    });
+                };
+
+                // Start the stream
+                streamChunk();
+
+                // Return a no-op cleanup function since streaming completes automatically
+                return () => {};
             }
         };
-     } catch (error) {
+    } catch (error) {
         console.error("Gemini API Error:", error);
         throw new Error(`${error.message || "Unknown error"}`);
     }
@@ -133,113 +170,29 @@ const buildSystemPrompt = (leetcodeUrl, userDoubt, problemContent = null) => {
     // Add formatting instructions first to prioritize their importance
     promptParts.push(`
 # Response Formatting Instructions
-
-You are a modern, user-friendly DSA teaching assistant that provides beautifully formatted responses. Your responses should be:
-
-NEVER asnwer any other questions that are not related to DSA.
-
-1. **Visually structured** with clear headings, subheadings, and white space
-2. **Properly formatted** using consistent Markdown syntax
-3. **Professionally styled** with appropriate use of bold, italics, lists, and code blocks
-4. **Easy to scan** with information hierarchy that makes sense
-
-## Code Formatting Requirements
-
-Always format code correctly:
-
-- Use \`inline code\` with single backticks for variable names, method names, and short snippets
-- Use proper code blocks with language specification for longer code:
-
-\`\`\`python
-def example_function(parameter):
-    # This is properly formatted code
-    result = parameter * 2
-    return result
-\`\`\`
-
-NEVER use apostrophes or quotes for code - always use proper Markdown backticks.
-
-## Visual Hierarchy
-
-Use heading levels consistently:
-- # Main title (use only once per response)
-- ## Major sections 
-- ### Subsections
-- #### Minor points
-
-Use **bold** for emphasis on key concepts and *italics* for introducing terminology.
-
-## Interactive Elements
-
-End sections with thought-provoking questions to encourage student engagement and reflection.
+// ... (existing formatting instructions) ...
     `);
 
-    // Add appropriate sections based on inputs
+    // Add problem-specific prompts if URL is provided
     if (leetcodeUrl) {
-        if (problemContent) {
-            promptParts.push(`
-## Problem Context
-The following is the LeetCode problem from ${leetcodeUrl}:
-
-${problemContent}
-
-Please analyze this problem and be ready to answer questions about it.
-            `);
-        } else {
-            // Fallback to URL-only prompt
-            promptParts.push(createProblemAnalysisPrompt(leetcodeUrl));
-            
-            // Add enhanced instructions for LeetCode problems
-            promptParts.push(`
-## LeetCode Problem Handling
-
-When responding to questions about LeetCode problems:
-1. If I don't provide the full problem statement, first try to explain what the problem is about based on its name and URL
-2. If asked to explain the problem, provide a detailed breakdown including:
-   - Problem statement and objective
-   - Input/output format and examples
-   - Constraints and edge cases
-   - Possible approaches (brute force and optimized)
-3. Remember that I might ask follow-up questions about the same problem
-4. Don't ask me to provide the problem statement - try to determine it from the problem name
-            `);
-        }
+        promptParts.push(createProblemAnalysisPrompt(leetcodeUrl));
     }
+
+    // Add doubt-specific prompt if user has a specific question
+    if (userDoubt) {
+        promptParts.push(createDoubtResponsePrompt(userDoubt));
+    }
+
+    // Add implementation guidance
+    promptParts.push(createImplementationGuidancePrompt());
+
+    // Add similar problems exploration
+    promptParts.push(createSimilarProblemsPrompt());
     
-    // Add an instruction about maintaining conversational flow
-// Modified conversational guidelines section
-promptParts.push(`
-    ## Conversational Guidelines
-    
-    - When asked to tell differences between topics, provide a clear and concise tabular comparison as well!
-    - Do not give TOO long responses. Keep them a bit concise and to the point. Try to give responses with more graphics for visualization wherever possible.
-    - Maintain a natural conversation flow without repeating introductions in each response
-    - Remember previous context and build upon it in your responses
-    - Respond directly to the student's current question without reintroducing yourself
-    - Keep a friendly, supportive tone throughout the conversation
-    - Assume the student remembers previous exchanges and avoid repetition
-    - If I provide a LeetCode problem URL, NEVER ask me to provide the problem statement - instead explain what you know about the problem based on its name and URL
-    - If you are asked with any other kind of question other than DSA or leetcode then don't answer, just tell the user what you're supposed to do.
-    - When analyzing code snippets, first identify the DSA concept or pattern before providing detailed explanations
-    - For code snippets, don't explain basic syntax line by line unless specifically requested
-    - Focus on algorithmic thinking and problem-solving approaches rather than trivial implementation details
-    - If you spot errors or optimization opportunities in code, point them out helpfully
-    - After identifying the concept in code, ask how you can specifically help with the implementation
-    
-    ## Memory Instructions
-    
-    - You MUST never answer any other questions that are not related to DSA.
-    - You MUST remember that you're in a continuous conversation about data structures and algorithms
-    - If I provide a LeetCode URL, YOU must remember that we're discussing that specific problem ONLY within this conversation
-    - Do NOT reset your understanding when I provide only a URL without a specific question
-    - If I say "explain this problem to me in detail", you should understand "this problem" refers to the LeetCode problem I provided in THIS conversation only
-    - Your context is limited to THIS conversation only - you don't know anything about problems discussed in other conversations
-    - When users submit code, first analyze it to determine the DSA concept before providing explanations
-    - For simple code examples, try to connect them to relevant DSA concepts rather than focusing on basic syntax
-    `);
-    
+    // ... (rest of the existing code) ...
+
     return promptParts.join("\n\n");
-    };
+};
 
 /**
  * Generates a title based on available inputs
@@ -253,23 +206,23 @@ export const generateTitle = (leetcodeUrl, userDoubt) => {
         // Extract problem name from URL
         const problemName = extractProblemNameFromUrl(leetcodeUrl);
         // Take a portion of the doubt for the title
-        const shortenedDoubt = userDoubt.length > 20 ? 
-            userDoubt.substring(0, 17) + '...' : 
+        const shortenedDoubt = userDoubt.length > 20 ?
+            userDoubt.substring(0, 17) + '...' :
             userDoubt;
         return `${problemName}: ${shortenedDoubt}`;
     }
-    
+
     // If only URL is provided
     else if (leetcodeUrl) {
         return extractProblemNameFromUrl(leetcodeUrl);
     }
-    
+
     // If only doubt is provided
     else if (userDoubt) {
         const words = userDoubt.split(' ');
         return words.slice(0, 3).join(' ') + (words.length > 3 ? '...' : '');
     }
-    
+
     // Default title if nothing is provided
     return "Untitled Conversation";
 };
@@ -296,4 +249,53 @@ const extractProblemNameFromUrl = (url) => {
         console.error("Error extracting problem name:", error);
         return "LeetCode Problem";
     }
+};
+
+// Add these functions near the bottom of api.js
+
+/**
+ * Analyzes code submission to identify DSA concepts
+ * @param {string} codeSnippet - The submitted code
+ * @returns {Object} Analysis results
+ */
+export const analyzeCodeSubmission = (codeSnippet) => {
+    // Use pattern library for concept detection
+    const concept = detectDSAConcept(codeSnippet);
+
+    return {
+        conceptIdentified: concept,
+        potentialImprovements: [
+            getDataStructureHint(concept),
+            getAlgorithmPatternHint(concept)
+        ],
+        learningQuestions: [
+            getRandomQuestion('socraticQuestions')
+        ]
+    };
+};
+
+/**
+ * Detects the primary DSA concept in a code snippet
+ * @param {string} codeSnippet - The code to analyze
+ * @returns {string} Detected DSA concept
+ */
+const detectDSAConcept = (codeSnippet) => {
+    // Implement basic pattern matching
+    const conceptPatterns = {
+        'Two Pointer': /two\s*pointers?/i,
+        'Sliding Window': /sliding\s*window/i,
+        'Dynamic Programming': /dp|dynamic\s*programming/i,
+        'Recursion': /recursive|recursion/i,
+        'Hash Map': /hash\s*map|dictionary/i,
+        'Stack': /stack\s*implementation/i,
+        'Queue': /queue\s*implementation/i
+    };
+
+    for (const [concept, pattern] of Object.entries(conceptPatterns)) {
+        if (pattern.test(codeSnippet)) {
+            return concept;
+        }
+    }
+
+    return 'Generic Algorithm';
 };

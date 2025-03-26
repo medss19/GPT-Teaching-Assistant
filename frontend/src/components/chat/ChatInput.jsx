@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import sendIcon from "../../assets/send.png";
 import micIcon from "../../assets/mic.png";
-import codeIcon from "../../assets/code.png"; // You'll need to add a code icon
+import codeIcon from "../../assets/code.png"; 
 import pauseIcon from "../../assets/pause.png"; 
 
 const ChatInput = ({

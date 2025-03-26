@@ -130,3 +130,32 @@ export const patternLibrary = {
     return patternLibrary.complexityExplanations[complexity] || 
       "Consider the time and space requirements as the input size grows.";
   };
+
+  // Add to existing exports
+export const detectCodeConcept = (codeSnippet) => {
+  // Expand on the detectDSAConcept logic
+  // Add more sophisticated concept detection
+  const complexityPatterns = {
+      'O(1)': /constant\s*time/i,
+      'O(n)': /linear\s*time/i,
+      'O(log n)': /logarithmic\s*time/i,
+      'O(n²)': /quadratic\s*time/i
+  };
+
+  // Implement more advanced detection logic
+  return {
+      concept: detectDSAConcept(codeSnippet),
+      complexity: Object.keys(complexityPatterns)
+          .find(key => complexityPatterns[key].test(codeSnippet)) || 'Unknown'
+  };
+};
+
+export const getContextualHints = (context) => {
+  const hintTypes = {
+      'problem': patternLibrary.problemBreakdown,
+      'implementation': patternLibrary.socraticQuestions,
+      'optimization': patternLibrary.socraticQuestions
+  };
+
+  return hintTypes[context] || hintTypes['problem'];
+};

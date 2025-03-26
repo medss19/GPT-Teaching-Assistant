@@ -1,65 +1,52 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import MessageItem from "./MessageItem";
 import WelcomeMessage from "./WelcomeMessage";
 
 const ChatMessages = ({ messages, isLoading, messagesEndRef }) => {
-  const [userHasScrolled, setUserHasScrolled] = useState(false);
   const chatContainerRef = useRef(null);
-  const scrollTimeout = useRef(null);
-  const isAutoScrollingRef = useRef(false);
-  
-  // Handle scroll event
-  const handleScroll = () => {
-    if (!chatContainerRef.current || isAutoScrollingRef.current) return;
-    
-    const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-    const isNearBottom = scrollHeight - scrollTop - clientHeight < 80;
-    
-    if (isNearBottom) {
-      setUserHasScrolled(false);
-    } else {
-      setUserHasScrolled(true);
+  const lastMessageRef = useRef(null);
+  const [isScrollControlled, setIsScrollControlled] = useState(false);
+
+  // Smooth scroll handler with enhanced control
+  const smoothScrollToBottom = useCallback((behavior = 'smooth') => {
+    if (lastMessageRef.current) {
+      lastMessageRef.current.scrollIntoView({ 
+        behavior, 
+        block: 'nearest',
+        inline: 'start'
+      });
     }
-  };
-  
-  // Scroll to bottom when new messages arrive
-  useEffect(() => {
-    const hasMessages = messages.length > 0;
-    const lastMessage = hasMessages ? messages[messages.length - 1] : null;
-    const isNewMessageBeingTyped = lastMessage?.isStreaming;
-    
-    // Don't scroll if user has manually scrolled up (unless it's a brand new conversation)
-    if (messages.length <= 1 || !userHasScrolled || isNewMessageBeingTyped) {
-      if (messagesEndRef.current) {
-        // Set flag to prevent handling scroll events during auto-scrolling
-        isAutoScrollingRef.current = true;
-        
-        messagesEndRef.current.scrollIntoView({ 
-          behavior: messages.length === 1 ? "auto" : "smooth", 
-          block: "end" 
-        });
-        
-        // Clear the flag after scrolling completes
-        clearTimeout(scrollTimeout.current);
-        scrollTimeout.current = setTimeout(() => {
-          isAutoScrollingRef.current = false;
-        }, 150);
-      }
-    }
-  }, [messages, userHasScrolled]);
-  
-  // Clean up timeout on component unmount
-  useEffect(() => {
-    return () => {
-      if (scrollTimeout.current) {
-        clearTimeout(scrollTimeout.current);
-      }
-    };
   }, []);
+
+  // Advanced scroll management
+  useEffect(() => {
+    // Only auto-scroll if not user-controlled or if it's a new conversation
+    if (!isScrollControlled || messages.length <= 1) {
+      smoothScrollToBottom(messages.length <= 1 ? 'auto' : 'smooth');
+    }
+  }, [messages, isScrollControlled, smoothScrollToBottom]);
+
+  // Scroll control handler
+  const handleScroll = useCallback(() => {
+    if (!chatContainerRef.current) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+    // User is considered in control if scrolled up significantly
+    setIsScrollControlled(distanceFromBottom > 100);
+  }, []);
+
+  // Restore scroll control when new conversation starts
+  useEffect(() => {
+    if (messages.length <= 1) {
+      setIsScrollControlled(false);
+    }
+  }, [messages]);
 
   return (
     <div 
-      className="chat-messages" 
+      className="chat-messages overflow-y-auto" 
       ref={chatContainerRef}
       onScroll={handleScroll}
     >
@@ -70,6 +57,7 @@ const ChatMessages = ({ messages, isLoading, messagesEndRef }) => {
           <MessageItem 
             key={`${msg.timestamp}-${index}`} 
             message={msg} 
+            ref={index === messages.length - 1 ? lastMessageRef : null}
           />
         ))
       )}
@@ -85,7 +73,7 @@ const ChatMessages = ({ messages, isLoading, messagesEndRef }) => {
           </div>
         </div>
       )}
-      <div ref={messagesEndRef} style={{ float: "left", clear: "both" }} />
+      <div ref={messagesEndRef} className="h-0" />
     </div>
   );
 };
