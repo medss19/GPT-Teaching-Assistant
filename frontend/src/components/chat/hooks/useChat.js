@@ -7,7 +7,7 @@ export const useChat = () => {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorDetails, setErrorDetails] = useState("");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
@@ -124,9 +124,7 @@ export const useChat = () => {
     if (selectedConversation) {
       setCurrentConversationId(conversationId);
       setMessages(selectedConversation.messages || []);
-      // Close sidebar on mobile after selection
-      setIsSidebarOpen(false);
-      
+
       // We'll reset the chat session for the selected conversation to force re-initialization
       // based on the conversation history
       resetChatSession(conversationId);

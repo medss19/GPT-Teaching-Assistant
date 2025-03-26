@@ -99,7 +99,7 @@
 }
 
 /* Icon styling */
-.send-icon, .mic-icon, .pause-icon {
+.send-icon, .mic-icon, .pause-icon, .code-icon {
   width: 24px;
   height: 24px;
   object-fit: contain;
@@ -121,8 +121,16 @@
 
 /* Optional: Make icons pop slightly on hover */
 .send-button:hover .send-icon,
-.voice-button:hover .mic-icon {
+.voice-button:hover .mic-icon,
+.code-button:hover .code-icon {
   transform: scale(1.1);
+}
+
+.code-button {
+  background-color: transparent;
+  border: none; /* Optional: removes border */
+  cursor: pointer; /* Optional: pointer cursor on hover */
+  padding: 10px; /* Optional: removes default padding */
 }
 
 /* Add this to your styles for the stop button */

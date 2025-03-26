@@ -1,12 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import "../Chat.css";
 import "./Sidebar/Sidebar.css";
 import "./ChatHeader.css";
 import "./ChatInput.css";
 import "./Welcome.css";
+import "./CodeEditor.css"; // Import the new CSS
 import ChatHeader from "./ChatHeader";
 import ChatMessages from "./ChatMessages";
 import ChatInput from "./ChatInput";
+import CodeEditor from "./CodeEditor"; // Import the new component
 import Sidebar from "./sidebar/Sidebar";
 import { useChat } from "./hooks/useChat";
 
@@ -39,12 +41,49 @@ const Chat = () => {
     bookmarks
   } = useChat();
 
+  // State for code editor
+  const [isCodeEditorOpen, setIsCodeEditorOpen] = useState(false);
+  
+  // Toggle sidebar
   const toggleSidebar = (e) => {
     if (e) {
       e.stopPropagation(); // Prevent event bubbling
     }
     setIsSidebarOpen(prev => !prev);
   };
+  
+  // Toggle code editor
+  const toggleCodeEditor = () => {
+    setIsCodeEditorOpen(prev => !prev);
+  };
+  
+  // Handle code submission
+  const handleCodeSubmit = (code, language, question = "Can you explain this code?") => {
+    // Format the code question for the chat
+    const codeQuestion = `
+  I have a question about the following ${language} code:
+  
+  \`\`\`${language}
+  ${code}
+  \`\`\`
+  
+  ${question}
+    `;
+    
+    // Set the doubt with the formatted code question
+    setDoubt(codeQuestion.trim());
+    
+    // Close the code editor
+    setIsCodeEditorOpen(false);
+    
+    // Optional: Auto-submit the question
+    setTimeout(() => {
+      handleSubmit({ preventDefault: () => {} });
+    }, 100);
+  };
+
+  // Determine main content width based on sidebar and code editor visibility
+  const mainContentClass = `chat-wrapper ${isSidebarOpen ? 'sidebar-open' : ''} ${isCodeEditorOpen ? 'code-editor-open' : ''}`;
 
   return (
     <div className="app-container">
@@ -63,7 +102,7 @@ const Chat = () => {
       />
 
       {/* Main chat area */}
-      <div className={`chat-wrapper ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+      <div className={mainContentClass}>
         <div className="chat-container">
           <ChatHeader 
             toggleSidebar={toggleSidebar} 
@@ -89,9 +128,17 @@ const Chat = () => {
             handleTextareaInput={handleTextareaInput}
             isStreaming={isStreaming}
             onStopStreaming={stopStreaming}
+            onCodeButtonClick={toggleCodeEditor} // New prop
           />
         </div>
       </div>
+      
+      {/* Code editor panel */}
+      <CodeEditor 
+        isOpen={isCodeEditorOpen}
+        onClose={toggleCodeEditor}
+        onSubmit={handleCodeSubmit}
+      />
     </div>
   );
 };

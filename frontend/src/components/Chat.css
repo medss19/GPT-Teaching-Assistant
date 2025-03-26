@@ -410,3 +410,48 @@ body {
     max-width: 320px;
   }
 }
+
+/* Add these styles to your Chat.css file */
+
+/* Adjust layout when code editor is open */
+.chat-wrapper.code-editor-open {
+  width: calc(100% - 500px); /* Adjust width when code editor is open */
+  transition: width 0.3s ease-in-out;
+}
+
+.chat-wrapper.sidebar-open.code-editor-open {
+  width: calc(100% - 500px - 250px); /* Adjust width when both sidebar and code editor are open */
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .chat-wrapper.code-editor-open {
+    width: calc(100% - 400px);
+  }
+  
+  .chat-wrapper.sidebar-open.code-editor-open {
+    width: calc(100% - 400px - 250px);
+  }
+}
+
+@media (max-width: 992px) {
+  .chat-wrapper.code-editor-open {
+    width: calc(100% - 350px);
+  }
+  
+  .chat-wrapper.sidebar-open.code-editor-open {
+    width: calc(100% - 350px - 250px);
+  }
+}
+
+@media (max-width: 768px) {
+  /* On mobile, the code editor takes full width */
+  .chat-wrapper.code-editor-open {
+    width: 0;
+    display: none;
+  }
+  
+  .code-editor-container {
+    width: 100%;
+  }
+}

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import sendIcon from "../../assets/send.png";
-import micIcon from "../../assets/mic.png"; // You'll need to add a microphone icon
+import micIcon from "../../assets/mic.png";
+import codeIcon from "../../assets/code.png"; // You'll need to add a code icon
 import pauseIcon from "../../assets/pause.png"; 
 
 const ChatInput = ({
@@ -12,7 +13,8 @@ const ChatInput = ({
   doubtInputRef,
   handleTextareaInput,
   isStreaming,
-  onStopStreaming
+  onStopStreaming,
+  onCodeButtonClick
 }) => {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
@@ -121,6 +123,17 @@ const ChatInput = ({
               }}
               disabled={isStreaming}
             />
+            <button 
+              type="button" 
+              className="code-button"
+              onClick={onCodeButtonClick}
+              aria-label="Open code editor"
+              disabled={isStreaming}
+            >
+              <img src={codeIcon} alt="Code" className="code-icon" />
+            </button>
+
+            
             <button 
               type="button" 
               className={`voice-button ${isListening ? 'listening' : ''}`}
